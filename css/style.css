@@ -26,7 +26,7 @@ img{max-width:100%}
   color-scheme:light}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
-.wrap{max-width:640px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
+.wrap{max-width:1320px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
 .num{font-variant-numeric:tabular-nums}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
@@ -250,7 +250,7 @@ details.aj[open] summary::after{content:"–"}
 .inat{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.9rem;color:var(--muted)}
 .aviso{background:var(--due-bg);color:var(--due);border-radius:var(--r);padding:12px 14px;font-size:.88rem}
 .nota{font-size:.8rem;color:var(--muted);margin:0}
-.rodape{max-width:640px;margin:0 auto;padding-block:0 32px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));font-size:.78rem;color:var(--muted);text-align:center}
+.rodape{max-width:1320px;margin:0 auto;padding-block:0 32px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));font-size:.78rem;color:var(--muted);text-align:center}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:var(--r);font-weight:600;font-size:.88rem;z-index:20;max-width:calc(100% - 32px)}
 @media (max-width:420px){
   form.inline{grid-template-columns:1fr 90px}
@@ -303,7 +303,38 @@ details.aj[open] summary::after{content:"–"}
 .ov img{max-width:100%;max-height:85vh;object-fit:contain;background:#fff}
 @media (max-width:420px){.emq{grid-template-columns:1fr}.emq .vs{justify-self:center;font-size:1.3rem}}
 
-.instalar{max-width:640px;margin:0 auto;padding-block:0 16px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px))}
+.instalar{max-width:1320px;margin:0 auto;padding-block:0 16px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px))}
 .instalar .passos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .instalar ol{margin:6px 0 0;padding-left:18px;font-size:.88rem;display:flex;flex-direction:column;gap:3px}
 @media (max-width:480px){.instalar .passos{grid-template-columns:1fr}}
+
+/* ---------- Layout ---------- */
+#app{display:flex;flex-direction:column;gap:22px;min-width:0}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+.col{display:flex;flex-direction:column;gap:22px;min-width:0}
+/* Tablet e celular: largura confortável de leitura */
+@media (max-width:1099px){
+  .wrap,.rodape,.instalar{max-width:680px}
+}
+/* Computador: tela inteira */
+@media (min-width:1100px){
+  .wrap{padding-left:max(32px, env(safe-area-inset-left,0px));padding-right:max(32px, env(safe-area-inset-right,0px));gap:26px}
+  header{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"marca mes" "abas abas";align-items:center;gap:14px 28px}
+  header .marca{grid-area:marca}
+  header .abas{grid-area:abas}
+  header .mesnav{grid-area:mes;min-width:340px}
+  .marca h1{font-size:2.4rem}
+  .info{grid-template-columns:1.3fr 1fr 1fr 1.5fr}
+  .info .quadra,.info .avulso{grid-column:auto}
+  .info .quadra{flex-direction:column;align-items:flex-start}
+  .info .avulso{border-top:0;border-left:3px solid var(--gold)}
+  .resumo{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .resumo .barra{grid-column:1/-1}
+  .kpi .v{font-size:2.3rem}
+  .pgrid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .uhero{position:sticky;top:16px}
+  .ufu{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media (min-width:1500px){
+  .wrap,.rodape,.instalar{max-width:1480px}
+}

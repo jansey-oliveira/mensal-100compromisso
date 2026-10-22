@@ -159,7 +159,7 @@ function renderSituacao(){
       <p class="nota">Pagou? Tire um print do comprovante do Pix e envie aqui (${brl(x.total)}). Só o organizador vê a imagem.</p>
       <div><label class="btn prim" for="compArq" role="button" tabindex="0">📎 ${env?'Enviar outro comprovante':'Enviar comprovante'}</label><input id="compArq" type="file" accept="image/*" hidden></div></div></section>`;
   }
-  app.innerHTML=h;
+  app.innerHTML=h;arranja(app);
 }
 
 function msgPresenca(t){
@@ -288,8 +288,36 @@ function renderUniforme(){
       <label class="f">Mínimo de kits<input id="uM" type="number" min="1" max="200" value="${T.meta}"></label>
       <label class="f" style="grid-column:1/-1">Prazo para pagamento<input id="uP" type="date" value="${S.cfg.uniPrazo||''}"></label></div>
       <div><button class="btn prim" type="submit">Salvar</button></div></form></div></details>`;
-  app.innerHTML=h;
+  app.innerHTML=h;arranja(app);
 }
+
+// Computador: distribui as seções em duas colunas para usar a largura da tela.
+// No celular a ordem fica a mesma, uma embaixo da outra.
+const LARGO=matchMedia('(min-width: 1100px)');
+const COLUNAS={
+  mensal:{'Comprovantes para conferir':'T','Presença':'R','Integrantes':'L','Frequência':'R','Vitórias':'R','Pagar com Pix':'L','Mensagens para o grupo':'L','Avulsos do mês':'R','Despesas do mês':'R','Histórico do caixa':'L'},
+  uniforme:{'Pedidos':'M','Grade para a fábrica':'R','Pagar o uniforme':'R','Mensagem para o grupo':'L'},
+  situacao:{'Mensalidades':'L','Frequência':'L','Avulsos que você levou':'R','Uniforme All Black':'R','Pagar o que está em aberto':'R','Enviar comprovante':'R'}
+};
+function arranja(app){
+  if(!LARGO.matches) return;
+  const mapa=COLUNAS[S.view]||{}, g={T:[],L:[],R:[],M:[],B:[]};
+  [...app.children].forEach(el=>{
+    let k;
+    if(el.matches('.resumo,.sit-top,section.eu')) k='T';
+    else if(el.matches('details.aj')) k='B';
+    else if(el.matches('figure.uhero')) k='L';
+    else if(el.matches('.meta')) k='R';
+    else {const h2=el.querySelector('h2');k=(h2&&mapa[h2.textContent.trim()])||'L'}
+    g[k].push(el);
+  });
+  if(!g.L.length||!g.R.length) return;
+  const cols=document.createElement('div');cols.className='cols';
+  const l=document.createElement('div'),r=document.createElement('div');l.className=r.className='col';
+  l.append(...g.L);r.append(...g.R);cols.append(l,r);
+  app.replaceChildren(...g.T,cols,...g.M,...g.B);
+}
+LARGO.addEventListener('change',()=>render());
 
 function render(){
   const ae=document.activeElement;
@@ -492,7 +520,7 @@ function render(){
     </div></details>`;
   }
   const abertoAj=document.getElementById('ajustes')?.open;
-  app.innerHTML=h;
+  app.innerHTML=h;arranja(app);
   if(abertoAj&&document.getElementById('ajustes')) document.getElementById('ajustes').open=true;
 }
 
