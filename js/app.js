@@ -346,7 +346,7 @@ function renderTopo(){
   const alvo=new Date(S.cfg.cupData||'2026-12-19T00:00');
   if(!isNaN(alvo)&&Date.now()<alvo.getTime()+864e5){
     h+=`<div class="cup" aria-label="Contagem regressiva para o ${esc(S.cfg.cupNome||'100 Compromisso Cup')}">
-      <div class="cup-logo"><img src="img/100-compromisso-cup.png" alt="100 Compromisso Cup" width="720" height="462"></div>
+      <div class="cup-logo"><img src="img/100-compromisso-cup.svg" alt="100 Compromisso Cup" width="780" height="530"></div>
       <div class="cup-info"><span class="eb">${esc(S.cfg.cupNome||'100 Compromisso Cup')} · ${dataBR(S.cfg.cupData.slice(0,10))}/${S.cfg.cupData.slice(0,4)}</span>
         <div class="relogio" id="relogio">${['dias','horas','min','seg'].map(k=>`<div class="dg"><b data-k="${k}">--</b><small>${k==='min'?'minutos':k==='seg'?'segundos':k}</small></div>`).join('<i class="sep">:</i>')}</div></div>
       ${S.pode?`<details class="cup-aj"><summary>Data</summary><form id="fCup" class="linhab"><input id="cupD" type="date" value="${S.cfg.cupData.slice(0,10)}" aria-label="Dia do torneio"><input id="cupH" type="time" value="${S.cfg.cupData.slice(11,16)}" aria-label="Hora"><button class="btn sec" type="submit">Salvar</button></form></details>`:''}
