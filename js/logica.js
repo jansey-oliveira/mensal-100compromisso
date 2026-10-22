@@ -68,3 +68,19 @@ export function pixPayload({ chave, nome, cidade, valor = 0, txid = '***' }) {
   p += tlv('62', tlv('05', (String(txid).replace(/[^A-Za-z0-9*]/g, '') || '***').slice(0, 25))) + '6304';
   return p + crc16(p);
 }
+
+/**
+ * Sorteia duplas entre os participantes (embaralhamento de Fisher-Yates).
+ * Retorna { duplas: [{a, b}], sobra: id ou null }. Com número ímpar, um fica de fora.
+ * As duplas são objetos porque o Firestore não guarda listas dentro de listas.
+ */
+export function sortearDuplas(ids, rnd = Math.random) {
+  const v = [...new Set(ids)];
+  for (let i = v.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [v[i], v[j]] = [v[j], v[i]];
+  }
+  const duplas = [];
+  for (let i = 0; i + 1 < v.length; i += 2) duplas.push({ a: v[i], b: v[i + 1] });
+  return { duplas, sobra: v.length % 2 ? v[v.length - 1] : null };
+}

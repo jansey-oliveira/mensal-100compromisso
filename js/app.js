@@ -2,7 +2,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth, onAuthStateChanged, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc, addDoc, getDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig, GRUPO } from './config.js';
-import { pad, mesAdd, jogosDoMes, slug, pixPayload } from './logica.js';
+import { pad, mesAdd, jogosDoMes, slug, pixPayload, sortearDuplas } from './logica.js';
 
 const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const hojeD=new Date();
@@ -37,6 +37,11 @@ function jogoAtual(){const js=jogosDoMes(S.mes);if(S.jogoSel&&js.includes(S.jogo
   if(S.mes===mesAtual)return js.find(d=>d>=hojeISO)||js[js.length-1];return S.mes<mesAtual?js[js.length-1]:js[0]}
 const minDe=iso=>dow(iso)===6?Number(S.cfg.minSab||10):Number(S.cfg.minTer||8);
 const presentes=iso=>(S.jogos[iso]?.presentes||[]).filter(id=>S.membros.some(m=>m.id===id));
+// Quem entra no sorteio: integrantes confirmados + avulsos lançados naquele dia (id "av:...").
+const participantes=iso=>[...presentes(iso),...S.avul.filter(a=>a.data===iso).map(a=>'av:'+a.id)];
+const nomePart=id=>{if(String(id).startsWith('av:')){const a=S.avul.find(x=>x.id===id.slice(3));return a?`${a.nome} (avulso)`:'Avulso'}return nomeMb(id)};
+const sorteioDesatualizado=iso=>{const sd=S.jogos[iso]?.sorteio;if(!sd)return false;
+  const no=[...sd.duplas.flatMap(d=>[d.a,d.b]),...(sd.sobra?[sd.sobra]:[])].sort().join('|');return no!==[...participantes(iso)].sort().join('|')};
 const nomeMb=id=>S.membros.find(m=>m.id===id)?.nome||'—';
 const planoTxt=mb=>mb.plano==='1x'?`Sáb · ${brl(S.cfg.valor1x)}`:`Ter + Sáb · ${brl(S.cfg.valor2x)}`;
 function qrImg(txt){try{const q=window.qrcode(0,'M');q.addData(txt);q.make();return q.createDataURL(6,2)}catch(e){return ''}}
@@ -147,6 +152,8 @@ function msgPresenca(t){
   if(cancelado(iso)) return `❌ *Jogo cancelado · ${DIA_LONGO[d]} ${dataBR(iso)} · ${HORA[d]}*\nMotivo: ${S.jogos[iso].motivo||'não informado'}\n\nNos vemos no próximo jogo!`;
   let s=`*${DIA_LONGO[d]} ${dataBR(iso)} · ${HORA[d]}*\nFutevôlei Zero11 · Rua Saldanha de Oliveira, 60\n\n✅ Confirmados (${pr.length})\n`+(pr.length?pr.map(n=>`• ${n}`).join('\n'):'• ninguém confirmou ainda');
   if(avs.length) s+=`\n\n🎟️ Avulsos (${avs.length})\n`+avs.map(a=>`• ${a.nome} (levado por ${nomeMb(a.quem)})`).join('\n');
+  const sd=S.jogos[iso]?.sorteio;
+  if(sd&&sd.duplas.length){s+=`\n\n🎲 Duplas sorteadas\n`+sd.duplas.map((d,i)=>`${i+1}. ${nomePart(d.a)} & ${nomePart(d.b)}`).join('\n');if(sd.sobra)s+=`\nFica de fora na primeira rodada: ${nomePart(sd.sobra)}`}
   s+=`\n\n`+(pr.length<min?`Com ${pr.length} confirmados (menos de ${min}), *vaga liberada para avulso*. Valor fixo de ${brl(S.cfg.valorAvulso)}, pago por quem levar.`:`${pr.length} confirmados: *sem vaga para avulso* neste jogo.`);
   return s;
 }
@@ -310,6 +317,18 @@ function render(){
       ${S.pode?`<div class="pgrid">${[...t.ativos].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR')).map(mb=>`<button class="pchip" data-act="pres" data-id="${mb.id}" aria-pressed="${pr.includes(mb.id)}">${esc(mb.nome)}${mb.plano==='1x'&&d===2?'<small>só sáb</small>':''}</button>`).join('')}</div><p class="nota">Toque no nome para marcar quem confirmou.</p>`
       :`<p class="nota">${pr.length?pr.map(nomeMb).sort((a,b)=>a.localeCompare(b,'pt-BR')).map(esc).join(' · '):'Ninguém confirmou ainda.'}</p>`}
       ${avs.length?`<p class="nota">Avulsos: ${avs.map(a=>`${esc(a.nome)} (${esc(nomeMb(a.quem))})`).join(' · ')}</p>`:''}
+      ${(()=>{const parts=participantes(iso), sd=jg.sorteio;
+        let x=`<div class="sorteio">`;
+        if(sd&&sd.duplas.length){
+          x+=`<div class="sh"><span class="eb">Duplas sorteadas</span>${S.pode?`<button class="btn sec" data-act="sortear">Sortear de novo</button>`:''}</div>
+          <ol class="duplas">${sd.duplas.map(d=>`<li><span>${esc(nomePart(d.a))}</span><i>&amp;</i><span>${esc(nomePart(d.b))}</span></li>`).join('')}</ol>
+          ${sd.sobra?`<p class="nota">Fica de fora na primeira rodada: <b>${esc(nomePart(sd.sobra))}</b></p>`:''}
+          ${sorteioDesatualizado(iso)?`<p class="aviso">A lista de presença mudou depois do sorteio.${S.pode?' Sorteie de novo para incluir todo mundo.':''}</p>`:''}`;
+        } else if(S.pode){
+          x+=parts.length>=2?`<button class="btn prim" data-act="sortear">🎲 Sortear duplas · ${parts.length} pessoa${parts.length>1?'s':''}</button>${parts.length%2?`<p class="nota">Número ímpar: uma pessoa fica de fora na primeira rodada.</p>`:''}`
+            :`<p class="nota">Marque pelo menos 2 confirmados para sortear as duplas.</p>`;
+        }
+        return x+`</div>`;})()}
       ${S.pode?`<details class="cancela"><summary>Cancelar este jogo</summary><div class="chips">${MOTIVOS.map(m=>`<button class="chip" data-act="cancelar" data-v="${m}">${m}</button>`).join('')}</div></details>`:''}`}
     </div></section>`;
   }
@@ -480,6 +499,12 @@ document.addEventListener('click',async ev=>{
   if(act==='plano') await grava(()=>db.doc(`integrantes/${id}`).update({plano:mb.plano==='1x'?'2x':'1x'}),'Plano alterado');
   if(act==='sair'){S.aberto=null;await grava(()=>db.doc(`integrantes/${id}`).update({ate:pagDe(mb,S.mes)?S.mes:mesAdd(S.mes,-1)}),`${mb.nome} saiu do grupo`)}
   if(act==='voltar') await grava(()=>db.doc(`integrantes/${id}`).update({ate:null,desde:(mb.desde&&mb.desde<=S.mes&&(!mb.ate||mb.ate>=mesAdd(S.mes,-1)))?mb.desde:S.mes}),`${mb.nome} voltou`);
+  if(act==='sortear'){
+    const iso=jogoAtual(), r=sortearDuplas(participantes(iso));
+    const docJ={...(S.jogos[iso]||{}),data:iso,presentes:presentes(iso),sorteio:{duplas:r.duplas,sobra:r.sobra,em:new Date().toISOString()}};
+    S.jogos[iso]=docJ; S.msgTipo='presenca'; render();
+    await grava(()=>db.doc(`jogos/${iso}`).set(docJ),'Duplas sorteadas. A lista para o grupo está pronta em Mensagens.');
+    return}
   if(act==='cancelar'||act==='descancelar'){
     const iso=jogoAtual(); const docJ={...(S.jogos[iso]||{}),data:iso,presentes:presentes(iso)};
     if(act==='cancelar'){docJ.cancelado=true;docJ.motivo=b.dataset.v}else{delete docJ.cancelado;delete docJ.motivo}

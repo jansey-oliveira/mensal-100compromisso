@@ -26,3 +26,18 @@ assert.equal(p.slice(-4), crc16(p.slice(0, -4)));
 assert.equal(pixPayload({ chave: '', nome: 'x', cidade: 'y' }), '');
 
 console.log('Todos os testes de lógica passaram.');
+
+// Sorteio de duplas
+import { sortearDuplas } from '../js/logica.js';
+{
+  const ids = ['a','b','c','d','e','f','g'];
+  const r = sortearDuplas(ids);
+  assert.equal(r.duplas.length, 3);
+  const todos = [...r.duplas.flatMap(d => [d.a, d.b]), r.sobra].sort();
+  assert.deepEqual(todos, [...ids].sort());
+  const par = sortearDuplas(['a','b','c','d']);
+  assert.equal(par.sobra, null); assert.equal(par.duplas.length, 2);
+  assert.deepEqual(sortearDuplas(['a','a','b']).duplas.length, 1);
+  assert.deepEqual(sortearDuplas([]), { duplas: [], sobra: null });
+  console.log('Testes do sorteio passaram.');
+}
