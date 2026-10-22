@@ -50,6 +50,7 @@ service cloud.firestore {
       match /jogos/{id} { allow read: if true; allow write: if isOrg(); }
       match /uniforme/{id} { allow read: if true; allow write: if isOrg(); }
       match /config/{id} { allow read: if true; allow write: if isOrg(); }
+      match /extras/{id} { allow read: if true; allow write: if isOrg(); }
 
       // Comprovantes de Pix: qualquer visitante (login anônimo) envia; só o organizador vê, dá baixa ou apaga.
       match /comprovantes/{id} {

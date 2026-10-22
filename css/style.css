@@ -338,3 +338,61 @@ details.aj[open] summary::after{content:"–"}
 @media (min-width:1500px){
   .wrap,.rodape,.instalar{max-width:1480px}
 }
+
+/* ---------- Mural e contagem regressiva ---------- */
+.topo{display:flex;flex-direction:column;gap:12px}
+.topo:empty{display:none}
+.mural{display:flex;align-items:flex-start;gap:12px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:var(--r);padding:14px 16px}
+.mural.alerta{border-left-color:var(--due);background:var(--due-bg)}
+.mural .mi{font-size:1.3rem;line-height:1.2}
+.mural p{margin:0;flex:1;font-weight:600;font-size:1rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.mural.vazio-av{border-style:dashed;border-left-width:1px}
+.mural.vazio-av p{font-weight:500;color:var(--muted)}
+.aviso-form textarea{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);padding:9px 11px;width:100%;font:inherit;color:inherit;resize:vertical}
+.cup{--led:#2AA8E8;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px 22px;background:#070707;color:#F2F2F2;border:1px solid #1E1E1E;border-radius:var(--r);padding:16px 20px;position:relative;overflow:hidden}
+.cup::before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 70% 50%,rgba(42,168,232,.12),transparent 60%);pointer-events:none}
+.cup-logo{width:132px;flex:none;position:relative}
+.cup-logo svg{display:block;width:100%;height:auto}
+.cup-logo .c100{font-family:"Montserrat",sans-serif;font-weight:700;font-style:italic;font-size:96px;fill:#D4A25E;letter-spacing:-6px}
+.cup-logo .cband{fill:#070707}
+.cup-logo .ccomp{font-family:"Montserrat",sans-serif;font-weight:700;font-style:italic;font-size:19px;fill:#F2F2F2;letter-spacing:1px}
+.cup-logo .ccup{font-family:"Montserrat",sans-serif;font-weight:700;font-size:22px;fill:#D4A25E;letter-spacing:4px}
+.cup-info{position:relative;min-width:0;display:flex;flex-direction:column;gap:8px}
+.cup-info .eb{font-size:.72rem;text-transform:uppercase;letter-spacing:.14em;color:#D4A25E;font-weight:700}
+.relogio{display:flex;align-items:flex-start;gap:6px;flex-wrap:nowrap}
+.relogio .dg{display:flex;flex-direction:column;align-items:center;gap:4px;background:#0F1214;border:1px solid #1C2a33;border-radius:4px;padding:8px 10px 6px;min-width:0}
+.relogio .dg b{font-family:"Orbitron","Share Tech Mono",ui-monospace,monospace;font-weight:900;font-size:clamp(1.6rem,5.2vw,3.2rem);line-height:1;color:var(--led);text-shadow:0 0 10px rgba(42,168,232,.65),0 0 2px rgba(42,168,232,.9);font-variant-numeric:tabular-nums;letter-spacing:.04em}
+.relogio .dg small{font-size:.62rem;text-transform:uppercase;letter-spacing:.14em;color:#8A9AA3;font-weight:700}
+.relogio .sep{font-style:normal;font-family:"Orbitron",monospace;font-weight:900;font-size:clamp(1.4rem,4.5vw,2.6rem);color:var(--led);opacity:.7;align-self:center;padding-bottom:16px;animation:pisca 1s steps(2,start) infinite}
+.relogio .hoje{font-family:"Orbitron",monospace;font-weight:900;font-size:2rem;color:var(--led);text-shadow:0 0 12px rgba(42,168,232,.7)}
+@keyframes pisca{to{visibility:hidden}}
+.cup-aj{position:relative;align-self:start;font-size:.78rem;color:#8A9AA3}
+.cup-aj summary{cursor:pointer}
+.cup-aj form{margin-top:8px;flex-direction:column}
+.cup-aj input{background:#111;color:#F2F2F2;border-color:#2A2A2A}
+@media (max-width:600px){
+  .cup{grid-template-columns:1fr;justify-items:center;text-align:center;padding:16px 12px}
+  .cup-logo{width:110px}
+  .cup-info{align-items:center}
+  .relogio{gap:3px}.relogio .dg{padding:7px 6px 5px}
+}
+@media (prefers-reduced-motion:reduce){.relogio .sep{animation:none}}
+/* ---------- Cobranças extras ---------- */
+.extra{gap:10px}
+.exh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.exh .ext{display:block;font-size:1.05rem}
+.extra .trilho i{background:var(--gold)}
+.extra .pchip[aria-pressed="true"]{background:var(--ok);border-color:var(--ok);color:#fff}
+.extra span.pchip{cursor:default}
+fieldset.parts{border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;margin:0}
+fieldset.parts legend{font-size:.78rem;color:var(--muted);font-weight:600;padding:0 4px}
+.pchk{display:flex;align-items:center;gap:8px;font-size:.88rem;font-weight:600}
+.pchk input{width:auto}
+@media (min-width:1100px){
+  .cup{padding:20px 28px}
+  .cup-logo{width:180px}
+  .cup-info{align-items:center}
+  .relogio{gap:10px}
+  .relogio .dg{padding:10px 16px 8px;min-width:104px}
+  .relogio .dg b{font-size:3.8rem}
+}

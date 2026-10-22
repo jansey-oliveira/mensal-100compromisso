@@ -1,6 +1,6 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getAuth, onAuthStateChanged, signInWithPopup, signInWithRedirect, signInAnonymously, GoogleAuthProvider, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc, addDoc, getDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc, addDoc, getDoc, writeBatch, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig, GRUPO } from './config.js';
 import { pad, mesAdd, jogosDoMes, slug, pixPayload, sortearDuplas, filaAtual, sequencia } from './logica.js';
 
@@ -9,8 +9,8 @@ const hojeD=new Date();
 const mesAtual=`${hojeD.getFullYear()}-${pad(hojeD.getMonth()+1)}`;
 const hojeISO=`${mesAtual}-${pad(hojeD.getDate())}`;
 const VIEWS={'#uniforme':'uniforme','#situacao':'situacao'};
-const S={view:(VIEWS[location.hash]||'mensal'),eu:null,freqPer:'mes',uni:{},uniPix:1,membros:[],pag:{},desp:[],avul:[],jogos:{},jogoSel:null,msgTipo:'cobranca',cfg:{valor2x:85,valor1x:50,pix:'',pixNome:'Jansey Oliveira',pixCidade:'Sao Paulo',cobranca:1,vencimento:10,valorAvulso:20,aluguelValor:850,aluguelDesc:'Aluguel da Quadra',uniValor:90,uniMeta:10,uniPrazo:'2026-11-05',minSab:10,minTer:8,saldoInicial:0},qrPlano:'2x',
-  mes:mesAtual,filtro:'todos',pode:false,db:null,aberto:null,ok:{m:false,p:false,d:false,c:false,a:false,j:false,u:false},semDb:false};
+const S={extras:[],aviso:null,editAviso:false,novaExtra:false,view:(VIEWS[location.hash]||'mensal'),eu:null,freqPer:'mes',uni:{},uniPix:1,membros:[],pag:{},desp:[],avul:[],jogos:{},jogoSel:null,msgTipo:'cobranca',cfg:{valor2x:85,valor1x:50,pix:'',pixNome:'Jansey Oliveira',pixCidade:'Sao Paulo',cobranca:1,vencimento:10,valorAvulso:20,aluguelValor:850,aluguelDesc:'Aluguel da Quadra',uniValor:90,cupData:'2026-12-19T00:00',cupNome:'100 Compromisso Cup',uniMeta:10,uniPrazo:'2026-11-05',minSab:10,minTer:8,saldoInicial:0},qrPlano:'2x',
+  mes:mesAtual,filtro:'todos',pode:false,db:null,aberto:null,ok:{m:false,p:false,d:false,c:false,a:false,j:false,u:false,x:false},semDb:false};
 try{const f=localStorage.getItem('mensal_filtro'); if(f) S.filtro=f; S.eu=localStorage.getItem('mensal_eu')}catch(e){}
 
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -60,8 +60,9 @@ function totais(){
   const avPago=avMes.filter(a=>a.pago).reduce((x,a)=>x+Number(a.valor),0);
   const avAberto=avMes.filter(a=>!a.pago).reduce((x,a)=>x+Number(a.valor),0);
   const avTodos=S.avul.filter(a=>a.pago&&a.mes<=S.mes).reduce((x,a)=>x+Number(a.valor),0);
-  const caixa=Number(S.cfg.saldoInicial||0)+todasEntradas+avTodos-todasSaidas;
-  return {ativos,previsto,recebido,falta:previsto-recebido,pagos,isentos,despMes,caixa,avMes,avPago,avAberto};
+  const exMes=extraEntradasMes(S.mes);
+  const caixa=Number(S.cfg.saldoInicial||0)+todasEntradas+avTodos+extraEntradasAte(S.mes)-todasSaidas;
+  return {ativos,previsto,recebido,falta:previsto-recebido,pagos,isentos,despMes,caixa,avMes,avPago,avAberto,exMes};
 }
 
 const cancelado=iso=>!!(S.jogos[iso]&&S.jogos[iso].cancelado);
@@ -82,12 +83,17 @@ function vitorias(per){
   });
   return {partidas,cont};
 }
+// Cobranças extras (churrasco, confraternização, torneio…)
+const extrasAtivas=()=>S.extras.filter(e=>!e.arquivada).sort((a,b)=>String(a.prazo||'9').localeCompare(String(b.prazo||'9')));
+const extraPagoEm=(e,id)=>(e.pagos||{})[id]||null;
+const extraEntradasMes=m=>S.extras.filter(e=>e.caixa).reduce((x,e)=>x+Object.values(e.pagos||{}).filter(d=>String(d).slice(0,7)===m).length*Number(e.valor||0),0);
+const extraEntradasAte=m=>S.extras.filter(e=>e.caixa).reduce((x,e)=>x+Object.values(e.pagos||{}).filter(d=>String(d).slice(0,7)<=m).length*Number(e.valor||0),0);
 function historicoCaixa(){
   const meses=new Set();Object.values(S.pag).forEach(p=>meses.add(p.mes));S.desp.forEach(d=>meses.add(d.mes));S.avul.forEach(a=>meses.add(a.mes));
   S.membros.forEach(m=>m.desde&&meses.add(m.desde));
   let ini=[...meses].sort()[0]||mesAtual; const out=[]; let saldo=Number(S.cfg.saldoInicial||0);
   for(let m=ini;m<=mesAtual;m=mesAdd(m,1)){
-    const ent=Object.values(S.pag).filter(p=>p.status==='pago'&&p.mes===m).reduce((x,p)=>x+Number(p.valor),0)+S.avul.filter(a=>a.pago&&a.mes===m).reduce((x,a)=>x+Number(a.valor),0);
+    const ent=Object.values(S.pag).filter(p=>p.status==='pago'&&p.mes===m).reduce((x,p)=>x+Number(p.valor),0)+S.avul.filter(a=>a.pago&&a.mes===m).reduce((x,a)=>x+Number(a.valor),0)+extraEntradasMes(m);
     const sai=S.desp.filter(d=>d.mes===m).reduce((x,d)=>x+Number(d.valor),0);
     saldo+=ent-sai; out.push({m,ent,sai,saldo});
   }
@@ -118,8 +124,10 @@ function situacao(mb){
   const abertoMens=linhas.filter(l=>l.st==='aberto'||l.st==='atrasado').reduce((x,l)=>x+l.valor,0);
   const abertoAv=av.filter(a=>!a.pago).reduce((x,a)=>x+Number(a.valor),0);
   const abertoUni=u.status==='fechado'?(Number(u.qtd)||0)*Number(S.cfg.uniValor||90):0;
+  const ex=extrasAtivas().filter(e=>(e.participantes||[]).includes(mb.id));
+  const abertoEx=ex.filter(e=>!extraPagoEm(e,mb.id)).reduce((x,e)=>x+Number(e.valor||0),0);
   const fm=frequencia('mes'), fa=frequencia('ano');
-  return {linhas,av,u,abertoMens,abertoAv,abertoUni,total:abertoMens+abertoAv+abertoUni,presMes:fm.cont[mb.id]||0,jogosMes:fm.total,presAno:fa.cont[mb.id]||0,jogosAno:fa.total};
+  return {linhas,av,u,ex,abertoEx,abertoMens,abertoAv,abertoUni,total:abertoMens+abertoAv+abertoUni+abertoEx,presMes:fm.cont[mb.id]||0,jogosMes:fm.total,presAno:fa.cont[mb.id]||0,jogosAno:fa.total};
 }
 function renderSituacao(){
   const app=document.getElementById('app');
@@ -131,7 +139,7 @@ function renderSituacao(){
   const x=situacao(mb);
   const STL={pago:['pago','Pago'],isento:['isento','Isento'],aberto:['aberto','Em aberto'],atrasado:['aberto','Atrasado']};
   h+=`<div class="card sit-top"><div><span class="eb">${esc(mb.nome)} · ${planoTxt(mb)}</span>
-      ${x.total?`<span class="sit-v due num">${brl(x.total)}</span><span class="nota">em aberto${x.abertoMens?` · mensal ${brl(x.abertoMens)}`:''}${x.abertoAv?` · avulsos ${brl(x.abertoAv)}`:''}${x.abertoUni?` · uniforme ${brl(x.abertoUni)}`:''}</span>`
+      ${x.total?`<span class="sit-v due num">${brl(x.total)}</span><span class="nota">em aberto${x.abertoMens?` · mensal ${brl(x.abertoMens)}`:''}${x.abertoAv?` · avulsos ${brl(x.abertoAv)}`:''}${x.abertoUni?` · uniforme ${brl(x.abertoUni)}`:''}${x.abertoEx?` · extras ${brl(x.abertoEx)}`:''}</span>`
       :`<span class="sit-v ok">Tudo em dia ✓</span><span class="nota">Nenhum valor em aberto.</span>`}</div></div>`;
   h+=`<section><h2>Mensalidades</h2><div class="lista">${x.linhas.map(l=>`<div class="linha"><div class="lin"><div class="quem"><b>${mesLongo(l.m)}</b><div class="tags"><span class="tag num">${brl(l.valor)}</span></div></div>
       <span class="status ${STL[l.st][0]}">${l.st==='pago'?`✓ Pago ${dataBR(l.data)}`:STL[l.st][1]}</span></div></div>`).join('')||'<div class="vazio">Nenhum mês ainda.</div>'}</div></section>`;
@@ -140,6 +148,8 @@ function renderSituacao(){
       <div><span class="cn num">${x.presAno}</span><span class="nota">de ${x.jogosAno} jogo${x.jogosAno===1?'':'s'} em ${S.mes.slice(0,4)}</span></div>
       ${(()=>{const vm=vitorias('mes').cont[mb.id]||0, va=vitorias('ano').cont[mb.id]||0;return vm||va?`<div><span class="cn num">${vm}</span><span class="nota">vitória${vm===1?'':'s'} em ${MESES[+S.mes.slice(5)-1].toLowerCase()}</span></div><div><span class="cn num">${va}</span><span class="nota">vitória${va===1?'':'s'} em ${S.mes.slice(0,4)}</span></div>`:''})()}</div></section>`;
   h+=`<section><h2>Avulsos que você levou</h2><div class="card"><div class="avl">${x.av.length?x.av.map(a=>`<div class="it"><span class="qd num">${diaTxt(a.data)}</span><span class="qn"><b>${esc(a.nome)}</b></span>${a.pago?`<span class="status pago">✓ ${brl(a.valor)}</span>`:`<span class="status aberto">${brl(a.valor)}</span>`}</div>`).join(''):'<p class="nota">Nenhum avulso.</p>'}</div></div></section>`;
+  if(x.ex.length) h+=`<section><h2>Cobranças extras</h2><div class="lista">${x.ex.map(e=>{const pe=extraPagoEm(e,mb.id);return `<div class="linha"><div class="lin"><div class="quem"><b>${esc(e.titulo)}</b><div class="tags"><span class="tag num">${brl(e.valor)}</span>${e.prazo?`<span class="tag">até ${dataBR(e.prazo)}</span>`:''}</div></div>
+    <span class="status ${pe?'pago':'aberto'}">${pe?`✓ Pago ${dataBR(pe)}`:'Em aberto'}</span></div></div>`}).join('')}</div></section>`;
   const u=x.u, st=u.status||'';
   h+=`<section><h2>Uniforme All Black</h2><div class="card"><div class="ufu">
       <div class="pf"><span>Nome na camisa</span><b>${esc(u.nomeCamisa||'—')}</b></div><div class="pf"><span>Tamanho</span><b>${esc(u.tamanho||'—')}</b></div>
@@ -176,10 +186,10 @@ function msgPresenca(t){
 }
 function msgFechamento(t){
   const dm=S.desp.filter(d=>d.mes===S.mes);
-  const res=t.recebido+t.avPago-t.despMes, anterior=t.caixa-res;
+  const res=t.recebido+t.avPago+t.exMes-t.despMes, anterior=t.caixa-res;
   const pend=t.ativos.filter(mb=>!pagDe(mb,S.mes)).map(mb=>mb.nome).sort((a,b)=>a.localeCompare(b,'pt-BR'));
   const avp=t.avMes.filter(a=>!a.pago);
-  let s=`*Fechamento · ${mesLongo(S.mes)}*\nMensal Futvôlei 100 Compromisso\n\n💵 *Entradas*\n• Mensalidades: ${brl(t.recebido)} (${t.pagos} de ${t.ativos.length-t.isentos})\n• Avulsos: ${brl(t.avPago)} (${t.avMes.filter(a=>a.pago).length})\nTotal: ${brl(t.recebido+t.avPago)}\n\n🧾 *Saídas*\n`;
+  let s=`*Fechamento · ${mesLongo(S.mes)}*\nMensal Futvôlei 100 Compromisso\n\n💵 *Entradas*\n• Mensalidades: ${brl(t.recebido)} (${t.pagos} de ${t.ativos.length-t.isentos})\n• Avulsos: ${brl(t.avPago)} (${t.avMes.filter(a=>a.pago).length})\n${t.exMes?`• Cobranças extras: ${brl(t.exMes)}\n`:''}Total: ${brl(t.recebido+t.avPago+t.exMes)}\n\n🧾 *Saídas*\n`;
   s+=(dm.length?dm.map(d=>`• ${d.descricao}: ${brl(d.valor)}`).join('\n'):'• nenhuma')+`\nTotal: ${brl(t.despMes)}\n\n`;
   s+=`📊 Resultado do mês: ${res<0?'-':''}${brl(Math.abs(res))}\nSaldo anterior: ${brl(anterior)}\n💰 *Caixa: ${brl(t.caixa)}*`;
   if(pend.length||avp.length){s+=`\n\n⏳ Em aberto\n`+[...pend.map(n=>`• ${n}`),...avp.map(a=>`• Avulso ${a.nome} (${nomeMb(a.quem)}) – ${brl(a.valor)}`)].join('\n')}
@@ -295,9 +305,9 @@ function renderUniforme(){
 // No celular a ordem fica a mesma, uma embaixo da outra.
 const LARGO=matchMedia('(min-width: 1100px)');
 const COLUNAS={
-  mensal:{'Comprovantes para conferir':'T','Presença':'R','Integrantes':'L','Frequência':'R','Vitórias':'R','Pagar com Pix':'L','Mensagens para o grupo':'L','Avulsos do mês':'R','Despesas do mês':'R','Histórico do caixa':'L'},
+  mensal:{'Comprovantes para conferir':'T','Cobranças extras':'L','Presença':'R','Integrantes':'L','Frequência':'R','Vitórias':'R','Pagar com Pix':'L','Mensagens para o grupo':'L','Avulsos do mês':'R','Despesas do mês':'R','Histórico do caixa':'L'},
   uniforme:{'Pedidos':'M','Grade para a fábrica':'R','Pagar o uniforme':'R','Mensagem para o grupo':'L'},
-  situacao:{'Mensalidades':'L','Frequência':'L','Avulsos que você levou':'R','Uniforme All Black':'R','Pagar o que está em aberto':'R','Enviar comprovante':'R'}
+  situacao:{'Cobranças extras':'L','Mensalidades':'L','Frequência':'L','Avulsos que você levou':'R','Uniforme All Black':'R','Pagar o que está em aberto':'R','Enviar comprovante':'R'}
 };
 function arranja(app){
   if(!LARGO.matches) return;
@@ -319,10 +329,45 @@ function arranja(app){
 }
 LARGO.addEventListener('change',()=>render());
 
+function renderTopo(){
+  const el=document.getElementById('topo'); if(!el) return;
+  let h='';
+  const av=S.aviso, vale=av&&av.texto&&(!av.ate||av.ate>=hojeISO);
+  if(S.pode&&S.editAviso){
+    h+=`<form class="card aviso-form" id="fAviso"><label class="f">Aviso para o grupo<textarea id="avTxt" rows="2" maxlength="240" placeholder="Ex.: Sábado a quadra é a 3. Cheguem 8h45.">${esc(av?.texto||'')}</textarea></label>
+      <div class="grade"><label class="f">Tipo<select id="avTipo"><option value="info"${av?.tipo!=='alerta'?' selected':''}>Informativo</option><option value="alerta"${av?.tipo==='alerta'?' selected':''}>Importante</option></select></label>
+      <label class="f">Mostrar até (opcional)<input id="avAte" type="date" value="${av?.ate||''}"></label></div>
+      <div class="linhab"><button class="btn prim" type="submit">Publicar aviso</button>${vale?`<button class="btn sec" type="button" data-act="tiraAviso">Remover aviso</button>`:''}<button class="btn sec" type="button" data-act="editaAviso">Cancelar</button></div></form>`;
+  } else if(vale){
+    h+=`<div class="mural ${av.tipo==='alerta'?'alerta':''}" role="status"><span class="mi" aria-hidden="true">${av.tipo==='alerta'?'⚠️':'📣'}</span><p>${esc(av.texto)}</p>${S.pode?`<button class="lnk" data-act="editaAviso">Editar</button>`:''}</div>`;
+  } else if(S.pode){
+    h+=`<div class="mural vazio-av"><span class="mi" aria-hidden="true">📣</span><p>Nenhum aviso no mural.</p><button class="lnk" data-act="editaAviso">Publicar aviso</button></div>`;
+  }
+  const alvo=new Date(S.cfg.cupData||'2026-12-19T00:00');
+  if(!isNaN(alvo)&&Date.now()<alvo.getTime()+864e5){
+    h+=`<div class="cup" aria-label="Contagem regressiva para o ${esc(S.cfg.cupNome||'100 Compromisso Cup')}">
+      <div class="cup-logo" aria-hidden="true"><svg viewBox="0 0 220 150"><text x="110" y="92" text-anchor="middle" class="c100">100</text><g transform="rotate(-8 110 78)"><rect x="18" y="66" width="184" height="26" class="cband"/><text x="110" y="85" text-anchor="middle" class="ccomp">COMPROMISSO</text></g><text x="110" y="136" text-anchor="middle" class="ccup">C U P</text></svg></div>
+      <div class="cup-info"><span class="eb">${esc(S.cfg.cupNome||'100 Compromisso Cup')} · ${dataBR(S.cfg.cupData.slice(0,10))}/${S.cfg.cupData.slice(0,4)}</span>
+        <div class="relogio" id="relogio">${['dias','horas','min','seg'].map(k=>`<div class="dg"><b data-k="${k}">--</b><small>${k==='min'?'minutos':k==='seg'?'segundos':k}</small></div>`).join('<i class="sep">:</i>')}</div></div>
+      ${S.pode?`<details class="cup-aj"><summary>Data</summary><form id="fCup" class="linhab"><input id="cupD" type="date" value="${S.cfg.cupData.slice(0,10)}" aria-label="Dia do torneio"><input id="cupH" type="time" value="${S.cfg.cupData.slice(11,16)}" aria-label="Hora"><button class="btn sec" type="submit">Salvar</button></form></details>`:''}
+    </div>`;
+  }
+  el.innerHTML=h; tick();
+}
+function tick(){
+  const r=document.getElementById('relogio'); if(!r) return;
+  const alvo=new Date(S.cfg.cupData||'2026-12-19T00:00').getTime(); let ms=Math.max(0,alvo-Date.now());
+  if(ms===0){r.innerHTML='<div class="hoje">É HOJE! 🏆</div>';return}
+  const v={dias:Math.floor(ms/864e5),horas:Math.floor(ms/36e5)%24,min:Math.floor(ms/6e4)%60,seg:Math.floor(ms/1e3)%60};
+  r.querySelectorAll('b[data-k]').forEach(b=>{const t=String(v[b.dataset.k]).padStart(2,'0');if(b.textContent!==t)b.textContent=t});
+}
+setInterval(tick,1000);
+
 function render(){
   const ae=document.activeElement;
   if(ae&&ae.closest&&ae.closest('#app')&&/^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)){S.pend=true;return}
   S.pend=false;
+  renderTopo();
   document.querySelectorAll('.abas button').forEach(b=>{if(b.dataset.v===S.view)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
   document.getElementById('mesnavBox').hidden=S.view!=='mensal';
   document.getElementById('infoBox').hidden=S.view!=='mensal';
@@ -354,7 +399,7 @@ function render(){
     h+=`<section><div class="sech"><h2>Comprovantes para conferir</h2><span class="nota">${S.comps.length}</span></div><div class="comps">${S.comps.map(c=>`
       <div class="card comp"><button class="thumb" data-act="verComp" data-id="${c.id}" aria-label="Ver comprovante de ${esc(c.nome)}"><img src="${c.img}" alt=""></button>
         <div class="ci"><b>${esc(c.nome)}</b><span class="num">${brl(c.valor)} · enviado ${dataBR(String(c.em).slice(0,10))} ${String(c.em).slice(11,16)}</span>
-        <small>${(c.itens||[]).map(i=>i.t==='mensal'?`mensal ${MESES[+i.mes.slice(5)-1].slice(0,3).toLowerCase()}`:i.t==='avulso'?'avulso':'uniforme').join(' · ')}</small>
+        <small>${(c.itens||[]).map(i=>i.t==='mensal'?`mensal ${MESES[+i.mes.slice(5)-1].slice(0,3).toLowerCase()}`:i.t==='avulso'?'avulso':i.t==='extra'?(S.extras.find(e=>e.id===i.id)?.titulo||'extra'):'uniforme').join(' · ')}</small>
         <div class="linhab"><button class="btn prim" data-act="baixaComp" data-id="${c.id}">Dar baixa</button><button class="btn sec" data-act="descComp" data-id="${c.id}">Descartar</button></div></div></div>`).join('')}</div></section>`;
   }
   { const js=jogosDoMes(S.mes), iso=jogoAtual(), d=dow(iso), pr=presentes(iso), min=minDe(iso), avs=S.avul.filter(a=>a.data===iso);
@@ -439,6 +484,33 @@ function render(){
     <div class="linhab"><button class="btn prim" data-act="copiar">Copiar mensagem</button>
     <a class="btn sec" href="https://wa.me/?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener">Abrir no WhatsApp</a></div></div></section>`;
 
+  { const ex=extrasAtivas();
+    if(ex.length||S.pode){
+      h+=`<section><div class="sech"><h2>Cobranças extras</h2>${S.pode?`<button class="btn sec" data-act="novaExtra">${S.novaExtra?'Fechar':'+ Nova cobrança'}</button>`:''}</div>`;
+      if(S.pode&&S.novaExtra){
+        const at=[...t.ativos].sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+        h+=`<form class="card ajb" id="fExtra"><div class="grade">
+          <label class="f" style="grid-column:1/-1">O que é<input id="xTit" required maxlength="50" placeholder="Ex.: Churrasco de fim de ano"></label>
+          <label class="f">Valor por pessoa (R$)<input id="xVal" type="number" step="0.01" min="0.01" inputmode="decimal" required></label>
+          <label class="f">Pagar até<input id="xPrazo" type="date"></label></div>
+          <fieldset class="parts"><legend>Quem participa</legend><div class="pgrid">${at.map(mb=>`<label class="pchk"><input type="checkbox" name="xPart" value="${mb.id}" checked> ${esc(mb.nome)}</label>`).join('')}</div></fieldset>
+          <label class="pchk"><input type="checkbox" id="xCaixa"> O dinheiro entra no caixa do grupo</label>
+          <div><button class="btn prim" type="submit">Criar cobrança</button></div></form>`;
+      }
+      if(!ex.length) h+=`<div class="card"><p class="nota">Nenhuma cobrança extra aberta. Use para churrasco, confraternização, bola nova ou inscrição em torneio.</p></div>`;
+      ex.forEach(e=>{
+        const ps=(e.participantes||[]).map(id=>({id,nome:nomeMb(id),pago:extraPagoEm(e,id)})).sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+        const np=ps.filter(p=>p.pago).length, pct=ps.length?np/ps.length*100:0;
+        h+=`<div class="card extra"><div class="exh"><div><b class="ext">${esc(e.titulo)}</b><span class="nota num">${brl(e.valor)} por pessoa${e.prazo?` · até ${dataBR(e.prazo)}`:''}${e.caixa?' · entra no caixa':''}</span></div>
+            <div class="arr"><span class="eb">Arrecadado</span><b class="num">${brl(np*Number(e.valor))}</b><small class="num">de ${brl(ps.length*Number(e.valor))}</small></div></div>
+          <div class="trilho"><i style="width:${pct}%"></i></div><p class="nota num">${np} de ${ps.length} pagaram</p>
+          <div class="pgrid">${ps.map(p=>S.pode?`<button class="pchip" data-act="extraPago" data-id="${e.id}" data-m="${p.id}" aria-pressed="${!!p.pago}">${esc(p.nome)}${p.pago?`<small>pago ${dataBR(p.pago)}</small>`:''}</button>`
+            :`<span class="pchip" aria-pressed="${!!p.pago}">${esc(p.nome)}</span>`).join('')}</div>
+          <div class="linhab"><button class="btn sec" data-act="copiaExtra" data-id="${e.id}">Copiar mensagem</button>${S.pode?`<button class="btn sec" data-act="arquivaExtra" data-id="${e.id}">${S.confArq===e.id?'Toque de novo para encerrar':'Encerrar cobrança'}</button>`:''}</div></div>`;
+      });
+      h+=`</section>`;
+    }
+  }
   const av=[...t.avMes].sort((a,b)=>a.data<b.data?1:a.data>b.data?-1:0);
   h+=`<section><div class="sech"><h2>Avulsos do mês</h2><span class="nota num">${av.length} · recebido ${brl(t.avPago)}${t.avAberto?` · a receber ${brl(t.avAberto)}`:''}</span></div><div class="card"><div class="avl">`;
   if(!av.length) h+=`<p class="nota">Nenhum avulso neste mês. Cada avulso paga ${brl(S.cfg.valorAvulso)}, e quem levou responde pelo pagamento.</p>`;
@@ -576,11 +648,31 @@ document.addEventListener('click',async ev=>{
       for(const i of (c.itens||[])){
         if(i.t==='mensal') await db.doc(`pagamentos/${i.mes}_${c.membro}`).set({mes:i.mes,membro:c.membro,status:'pago',valor:Number(i.valor),data:hojeISO});
         if(i.t==='avulso'&&S.avul.some(a=>a.id===i.id)) await db.doc(`avulsos/${i.id}`).update({pago:true,pagoEm:hojeISO});
+        if(i.t==='extra'&&S.extras.some(e=>e.id===i.id)) await db.doc(`extras/${i.id}`).update({[`pagos.${c.membro}`]:hojeISO});
         if(i.t==='uniforme') await db.doc(`uniforme/${c.membro}`).set({...(S.uni[c.membro]||{}),status:'pago',pagoEm:hojeISO,em:hojeISO});
       }
       await db.doc(`comprovantes/${id}`).update({status:'conferido',conferidoEm:hojeISO});
     },`Baixa dada: ${c.nome}, ${brl(c.valor)}`);
     return}
+  if(act==='novaExtra'){S.novaExtra=!S.novaExtra;render();b.disabled=false;return}
+  if(act==='extraPago'){
+    const e=S.extras.find(x=>x.id===id), m=b.dataset.m; if(!e) return;
+    const pago=extraPagoEm(e,m);
+    await grava(()=>db.doc(`extras/${id}`).update({[`pagos.${m}`]:pago?deleteField():hojeISO}),pago?'Pagamento desfeito':`${nomeMb(m)} pagou`);
+    return}
+  if(act==='copiaExtra'){
+    const e=S.extras.find(x=>x.id===id); if(!e){b.disabled=false;return}
+    const ps=(e.participantes||[]).map(i=>({nome:nomeMb(i),pago:extraPagoEm(e,i)})).sort((a,c)=>a.nome.localeCompare(c.nome,'pt-BR'));
+    const txt=`*${e.titulo}*\nValor: ${brl(e.valor)} por pessoa${e.prazo?`\nPagar até: ${dataBR(e.prazo)}`:''}\nPix: ${S.cfg.pix}\n\n✅ Pagos (${ps.filter(p=>p.pago).length})\n${ps.filter(p=>p.pago).map(p=>`• ${p.nome}`).join('\n')||'• ninguém ainda'}\n\n⏳ Falta pagar (${ps.filter(p=>!p.pago).length})\n${ps.filter(p=>!p.pago).map(p=>`• ${p.nome}`).join('\n')||'• ninguém 🙌'}\n\nConfira: ${location.origin+location.pathname}#situacao`;
+    try{await navigator.clipboard.writeText(txt);toast('Mensagem copiada. Cole no grupo.')}catch(_){toast('Não deu para copiar neste navegador.')}
+    b.disabled=false;return}
+  if(act==='arquivaExtra'){
+    if(S.confArq!==id){S.confArq=id;render();setTimeout(()=>{if(S.confArq===id){S.confArq=null;render()}},5000);return}
+    S.confArq=null;
+    await grava(()=>db.doc(`extras/${id}`).update({arquivada:true}),'Cobrança encerrada');
+    return}
+  if(act==='editaAviso'){S.editAviso=!S.editAviso;render();b.disabled=false;return}
+  if(act==='tiraAviso'){S.editAviso=false;await grava(()=>db.doc('config/aviso').set({texto:'',tipo:'info',ate:null,em:hojeISO}),'Aviso removido');return}
   if(act==='venceu'||act==='desfazerPartida'){
     const iso=jogoAtual(), jg0=S.jogos[iso]||{}, sd=jg0.sorteio; if(!sd) return;
     let P=[...(sd.partidas||[])];
@@ -676,7 +768,8 @@ document.addEventListener('change',async ev=>{
     const img=await comprimeImagem(file);
     const itens=[...x.linhas.filter(l=>l.st==='aberto'||l.st==='atrasado').map(l=>({t:'mensal',mes:l.m,valor:l.valor})),
       ...x.av.filter(a=>!a.pago).map(a=>({t:'avulso',id:a.id,valor:Number(a.valor)})),
-      ...(x.abertoUni?[{t:'uniforme',valor:x.abertoUni}]:[])];
+      ...(x.abertoUni?[{t:'uniforme',valor:x.abertoUni}]:[]),
+      ...x.ex.filter(e=>!extraPagoEm(e,mb.id)).map(e=>({t:'extra',id:e.id,valor:Number(e.valor)}))];
     const em=new Date(Date.now()-3*3600e3).toISOString().slice(0,16);
     await addDoc(collection(fs,BASE+'comprovantes'),{membro:mb.id,nome:mb.nome,valor:x.total,itens,img,em,status:'novo',uid:auth.currentUser.uid});
     try{localStorage.setItem('mensal_comp_'+mb.id,em)}catch(e){}
@@ -711,6 +804,22 @@ document.addEventListener('submit',async ev=>{
     if(!data||!nome||!quem) return;
     if(data.slice(0,7)!==S.mes){toast(`Escolha um dia de ${mesLongo(S.mes).toLowerCase()}.`);return}
     await grava(()=>db.collection('avulsos').add({mes:S.mes,data,nome,quem,valor:Number(S.cfg.valorAvulso)||20,pago,pagoEm:pago?hojeISO:null}),`Avulso ${nome} lançado`);
+  }
+  if(f.id==='fExtra'){
+    const titulo=f.querySelector('#xTit').value.trim(), valor=Number(f.querySelector('#xVal').value), prazo=f.querySelector('#xPrazo').value||null;
+    const participantes=[...f.querySelectorAll('input[name=xPart]:checked')].map(i=>i.value), caixa=f.querySelector('#xCaixa').checked;
+    if(!titulo||!(valor>0)||!participantes.length){toast('Preencha o nome, o valor e escolha quem participa.');return}
+    S.novaExtra=false;
+    await grava(()=>db.collection('extras').add({titulo,valor,prazo,participantes,caixa,pagos:{},criada:hojeISO,arquivada:false}),'Cobrança criada');
+  }
+  if(f.id==='fAviso'){
+    const texto=f.querySelector('#avTxt').value.trim(), tipo=f.querySelector('#avTipo').value, ate=f.querySelector('#avAte').value||null;
+    S.editAviso=false;
+    await grava(()=>db.doc('config/aviso').set({texto,tipo,ate,em:hojeISO}),texto?'Aviso publicado':'Aviso removido');
+  }
+  if(f.id==='fCup'){
+    const d=f.querySelector('#cupD').value, hh=f.querySelector('#cupH').value||'00:00';
+    if(d) await grava(()=>db.doc('config/geral').set({...S.cfg,cupData:`${d}T${hh}`}),'Data do torneio salva');
   }
   if(f.id==='fEditDesp'){
     const id=f.dataset.id, valor=Number(f.querySelector('#edVal').value);
@@ -853,6 +962,8 @@ DB.collection('despesas').onSnapshot(s=>{S.desp=s.docs.map(d=>({id:d.id,...d.dat
 DB.collection('uniforme').onSnapshot(s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S.uni=o;S.ok.u=true;pronto()},falhou);
 DB.collection('jogos').onSnapshot(s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S.jogos=o;S.ok.j=true;pronto()},falhou);
 DB.collection('avulsos').onSnapshot(s=>{S.avul=s.docs.map(d=>({id:d.id,...d.data()}));S.ok.a=true;pronto()},falhou);
+DB.collection('extras').onSnapshot(s=>{S.extras=s.docs.map(d=>({id:d.id,...d.data()}));S.ok.x=true;pronto()},falhou);
+DB.doc('config/aviso').onSnapshot(s=>{S.aviso=s.exists?s.data():null;render()},()=>{});
 DB.doc('config/geral').onSnapshot(s=>{if(s.exists)S.cfg={...S.cfg,...s.data()};S.ok.c=true;pronto()},falhou);
 render();rodape();
 
