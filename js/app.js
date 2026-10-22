@@ -962,7 +962,7 @@ DB.collection('despesas').onSnapshot(s=>{S.desp=s.docs.map(d=>({id:d.id,...d.dat
 DB.collection('uniforme').onSnapshot(s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S.uni=o;S.ok.u=true;pronto()},falhou);
 DB.collection('jogos').onSnapshot(s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S.jogos=o;S.ok.j=true;pronto()},falhou);
 DB.collection('avulsos').onSnapshot(s=>{S.avul=s.docs.map(d=>({id:d.id,...d.data()}));S.ok.a=true;pronto()},falhou);
-DB.collection('extras').onSnapshot(s=>{S.extras=s.docs.map(d=>({id:d.id,...d.data()}));S.ok.x=true;pronto()},falhou);
+DB.collection('extras').onSnapshot(s=>{S.extras=s.docs.map(d=>({id:d.id,...d.data()}));S.ok.x=true;pronto()},()=>{S.extras=[];S.ok.x=true;pronto()});
 DB.doc('config/aviso').onSnapshot(s=>{S.aviso=s.exists?s.data():null;render()},()=>{});
 DB.doc('config/geral').onSnapshot(s=>{if(s.exists)S.cfg={...S.cfg,...s.data()};S.ok.c=true;pronto()},falhou);
 render();rodape();
