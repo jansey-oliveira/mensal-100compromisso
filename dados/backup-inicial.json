@@ -1,0 +1,288 @@
+{
+  "versao": 1,
+  "grupo": "100compromisso",
+  "em": "2026-10-21T21:45:00-03:00",
+  "membros": [
+    {
+      "id": "bessa",
+      "ate": null,
+      "desde": "2026-10",
+      "nome": "Bessa",
+      "plano": "1x"
+    },
+    {
+      "id": "dalvan",
+      "ate": null,
+      "desde": "2026-10",
+      "nome": "Dalvan",
+      "plano": "2x"
+    },
+    {
+      "id": "eduardo",
+      "ate": null,
+      "desde": "2026-10",
+      "nome": "Eduardo",
+      "plano": "2x"
+    },
+    {
+      "id": "eudes",
+      "ate": null,
+      "desde": "2026-10",
+      "nome": "Eudes",
+      "plano": "2x"
+    },
+    {
+      "id": "felipe-bazani",
+      "ate": null,
+      "desde": "2026-10",
+      "nome": "Felipe Bazani",
+      "plano": "1x"
+    },
+    {
+      "id": "gabriel",
+      "ate": null,
+      "desde": "2026-10",
+      "nome": "Gabriel",
+      "plano": "2x"
+    },
+    {
+      "id": "hebert",
+      "ate": null,
+      "desde": "2026-10",
+      "nome": "Hebert",
+      "plano": "2x"
+    },
+    {
+      "id": "jansey",
+      "ate": null,
+      "desde": "2026-10",
+      "nome": "Jansey",
+      "plano": "2x"
+    },
+    {
+      "id": "japa",
+      "ate": null,
+      "desde": "2026-10",
+      "nome": "Japa",
+      "plano": "2x"
+    },
+    {
+      "id": "jaqueline",
+      "ate": null,
+      "desde": "2026-10",
+      "nome": "Jaqueline",
+      "plano": "2x"
+    },
+    {
+      "id": "michelle",
+      "ate": null,
+      "desde": "2026-10",
+      "nome": "Michelle",
+      "plano": "1x"
+    },
+    {
+      "id": "renato",
+      "ate": null,
+      "desde": "2026-10",
+      "nome": "Renato",
+      "plano": "2x"
+    },
+    {
+      "id": "thaina",
+      "ate": null,
+      "desde": "2026-10",
+      "nome": "Thainá",
+      "plano": "2x"
+    }
+  ],
+  "pag": {
+    "2026-10_bessa": {
+      "data": "2026-10-21",
+      "membro": "bessa",
+      "mes": "2026-10",
+      "status": "pago",
+      "valor": 50
+    },
+    "2026-10_dalvan": {
+      "data": "2026-10-21",
+      "membro": "dalvan",
+      "mes": "2026-10",
+      "status": "pago",
+      "valor": 85
+    },
+    "2026-10_eduardo": {
+      "data": "2026-10-21",
+      "membro": "eduardo",
+      "mes": "2026-10",
+      "status": "pago",
+      "valor": 85
+    },
+    "2026-10_eudes": {
+      "data": "2026-10-21",
+      "membro": "eudes",
+      "mes": "2026-10",
+      "status": "pago",
+      "valor": 85
+    },
+    "2026-10_felipe-bazani": {
+      "data": "2026-10-21",
+      "membro": "felipe-bazani",
+      "mes": "2026-10",
+      "status": "pago",
+      "valor": 50
+    },
+    "2026-10_hebert": {
+      "data": "2026-10-21",
+      "membro": "hebert",
+      "mes": "2026-10",
+      "status": "pago",
+      "valor": 85
+    },
+    "2026-10_jansey": {
+      "data": "2026-10-21",
+      "membro": "jansey",
+      "mes": "2026-10",
+      "status": "pago",
+      "valor": 85
+    },
+    "2026-10_japa": {
+      "data": "2026-10-21",
+      "membro": "japa",
+      "mes": "2026-10",
+      "status": "pago",
+      "valor": 85
+    },
+    "2026-10_jaqueline": {
+      "data": "2026-10-21",
+      "membro": "jaqueline",
+      "mes": "2026-10",
+      "status": "pago",
+      "valor": 85
+    },
+    "2026-10_michelle": {
+      "data": "2026-10-21",
+      "membro": "michelle",
+      "mes": "2026-10",
+      "status": "pago",
+      "valor": 50
+    },
+    "2026-10_renato": {
+      "data": "2026-10-21",
+      "membro": "renato",
+      "mes": "2026-10",
+      "status": "pago",
+      "valor": 85
+    },
+    "2026-10_thaina": {
+      "data": "2026-10-21",
+      "membro": "thaina",
+      "mes": "2026-10",
+      "status": "pago",
+      "valor": 85
+    }
+  },
+  "desp": [
+    {
+      "id": "rc6bhknj8paav3miqbo8",
+      "data": "2026-10-21",
+      "descricao": "Aluguel da Quadra",
+      "mes": "2026-10",
+      "valor": 850
+    }
+  ],
+  "avul": [
+    {
+      "id": "p31y6sb6plusxifxs4i6",
+      "data": "2026-10-20",
+      "mes": "2026-10",
+      "nome": "Deivinho",
+      "pago": true,
+      "pagoEm": "2026-10-21",
+      "quem": "thaina",
+      "valor": 20
+    }
+  ],
+  "jogos": {
+    "2026-10-13": {
+      "data": "2026-10-13",
+      "presentes": [
+        "hebert",
+        "jansey",
+        "renato",
+        "thaina",
+        "gabriel"
+      ]
+    },
+    "2026-10-20": {
+      "data": "2026-10-20",
+      "presentes": [
+        "dalvan",
+        "gabriel",
+        "hebert",
+        "eduardo",
+        "eudes",
+        "jansey",
+        "renato",
+        "jaqueline",
+        "thaina"
+      ]
+    },
+    "2026-10-24": {
+      "data": "2026-10-24",
+      "presentes": []
+    }
+  },
+  "uni": {
+    "dalvan": {
+      "em": "2026-10-21",
+      "nome": "Dalvan",
+      "qtd": 1,
+      "status": "fechado",
+      "tamanho": "G"
+    },
+    "hebert": {
+      "em": "2026-10-21",
+      "nome": "Hebert",
+      "qtd": 1,
+      "status": "fechado"
+    },
+    "jansey": {
+      "em": "2026-10-21",
+      "nome": "Jansey",
+      "nomeCamisa": "JAN",
+      "pagoEm": "2026-10-21",
+      "qtd": 2,
+      "status": "pago",
+      "tamanho": "G"
+    },
+    "jaqueline": {
+      "em": "2026-10-21",
+      "nome": "Jaqueline",
+      "qtd": 1,
+      "status": "fechado",
+      "tamanho": "P"
+    },
+    "renato": {
+      "em": "2026-10-21",
+      "nome": "Renato",
+      "qtd": 1,
+      "status": "fechado"
+    }
+  },
+  "cfg": {
+    "cobranca": 1,
+    "minSab": 10,
+    "minTer": 8,
+    "pix": "jansey@studiojs.com.br",
+    "pixCidade": "Sao Paulo",
+    "pixNome": "Jansey Oliveira",
+    "saldoInicial": 150,
+    "uniMeta": 10,
+    "uniPrazo": "2026-11-05",
+    "uniValor": 90,
+    "valor1x": 50,
+    "valor2x": 85,
+    "valorAvulso": 20,
+    "vencimento": 10
+  }
+}

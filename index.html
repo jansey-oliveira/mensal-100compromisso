@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mensal 100 Compromisso</title>
+<meta name="description" content="Mensalidade, presença, avulsos, caixa e uniforme do Futvôlei 100 Compromisso.">
+<meta name="theme-color" content="#0B0B0B">
+<meta property="og:title" content="Mensal 100 Compromisso">
+<meta property="og:description" content="Futvôlei às terças e sábados na Futevôlei Zero11. Mensal, presença, caixa e uniforme All Black.">
+<meta property="og:image" content="img/uniforme-all-black.jpg">
+<link rel="icon" href="img/icone-32.png" sizes="32x32">
+<link rel="apple-touch-icon" href="img/icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="marca"><div class="escudo" role="img" aria-label="Escudo Futevôlei 100 Compromisso"></div><div><h1>Mensal 100 Compromisso</h1><small>Terças e sábados · <span class="lema">Disciplina · Foco · Resultado</span></small></div></div>
+    <nav class="abas" aria-label="Páginas">
+      <button data-act="view" data-v="mensal" aria-current="page">Mensal</button>
+      <button data-act="view" data-v="uniforme">Uniforme All Black</button>
+      <button data-act="view" data-v="situacao">Minha situação</button>
+    </nav>
+    <div class="mesnav" id="mesnavBox">
+      <button id="mesAnt" aria-label="Mês anterior">‹</button>
+      <div class="rot"><b id="mesNome">—</b><span id="mesSub">mensalidade do mês</span></div>
+      <button id="mesProx" aria-label="Próximo mês">›</button>
+    </div>
+  </header>
+  <section class="info" id="infoBox" aria-label="Quadra, horários e avulsos">
+    <div class="quadra"><div><span class="eb">Quadra</span><b>Futevôlei Zero11</b><span class="end">Rua Saldanha de Oliveira, 60</span></div>
+      <a class="btn sec" href="https://www.google.com/maps/search/?api=1&amp;query=Futev%C3%B4lei%20Zero11%20Rua%20Saldanha%20de%20Oliveira%2060" target="_blank" rel="noopener">Abrir no mapa ↗</a></div>
+    <div class="dia"><span class="eb">Horário</span><span class="nome">Sábado</span><span class="hora num">09:00</span><p>Avulso só com <b>menos de 10 pessoas</b></p></div>
+    <div class="dia"><span class="eb">Horário</span><span class="nome">Terça-feira</span><span class="hora num">20:00</span><p>Avulso só com <b>menos de 8 pessoas</b></p></div>
+    <div class="avulso"><span class="preco num"><small>R$</small> 20</span><span class="eb">Valor do avulso</span><strong>Valor fixo, independente de qualquer situação.</strong><p>Quem levar avulso fica responsável pelo pagamento.</p></div>
+  </section>
+  <div id="app"><div class="card"><p class="nota">Carregando o mensal…</p></div></div>
+</div>
+<p class="rodape" id="rodape"></p>
+<div class="toast" id="toast" hidden></div>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
