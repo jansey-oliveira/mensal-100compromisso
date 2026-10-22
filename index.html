@@ -41,6 +41,17 @@
   </section>
   <div id="app"><div class="card"><p class="nota">Carregando o mensal…</p></div></div>
 </div>
+<section class="instalar" id="instalar" hidden aria-labelledby="instTit">
+  <div class="card">
+    <div class="sech"><h2 id="instTit">Instalar no celular</h2><button class="x" type="button" data-act="fechaInstalar" aria-label="Fechar">×</button></div>
+    <p class="nota">O site vira um ícone na tela inicial e abre como app, sem barra do navegador.</p>
+    <button class="btn prim" type="button" id="btnInstalar" data-act="instalarApp" hidden>📲 Instalar agora</button>
+    <div class="passos">
+      <div><b>iPhone (Safari)</b><ol><li>Toque em <b>Compartilhar</b> (quadrado com seta para cima).</li><li>Escolha <b>Adicionar à Tela de Início</b>.</li><li>Toque em <b>Adicionar</b>.</li></ol></div>
+      <div><b>Android (Chrome)</b><ol><li>Toque no menu <b>⋮</b> no canto de cima.</li><li>Escolha <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.</li><li>Confirme em <b>Instalar</b>.</li></ol></div>
+    </div>
+  </div>
+</section>
 <p class="rodape" id="rodape"></p>
 <div class="toast" id="toast" hidden></div>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>

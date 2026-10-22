@@ -41,3 +41,19 @@ import { sortearDuplas } from '../js/logica.js';
   assert.deepEqual(sortearDuplas([]), { duplas: [], sobra: null });
   console.log('Testes do sorteio passaram.');
 }
+
+// Fila da quadra
+import { filaAtual, sequencia } from '../js/logica.js';
+{
+  assert.deepEqual(filaAtual(4), [0, 1, 2, 3]);
+  const p = [{ a: 0, b: 1, v: 0 }];                 // 0 vence 1
+  assert.deepEqual(filaAtual(4, p), [0, 2, 3, 1]);
+  p.push({ a: 0, b: 2, v: 2 });                      // 2 vence 0
+  assert.deepEqual(filaAtual(4, p), [2, 3, 1, 0]);
+  p.push({ a: 2, b: 3, v: 2 });
+  assert.deepEqual(filaAtual(4, p), [2, 1, 0, 3]);
+  assert.equal(sequencia(p), 2);
+  assert.equal(sequencia([]), 0);
+  assert.deepEqual(filaAtual(2, [{ a: 0, b: 1, v: 1 }]), [1, 0]);
+  console.log('Testes da fila passaram.');
+}

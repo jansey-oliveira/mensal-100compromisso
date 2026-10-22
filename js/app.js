@@ -1,15 +1,15 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getAuth, onAuthStateChanged, signInWithPopup, signInWithRedirect, GoogleAuthProvider, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { getAuth, onAuthStateChanged, signInWithPopup, signInWithRedirect, signInAnonymously, GoogleAuthProvider, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc, addDoc, getDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig, GRUPO } from './config.js';
-import { pad, mesAdd, jogosDoMes, slug, pixPayload, sortearDuplas } from './logica.js';
+import { pad, mesAdd, jogosDoMes, slug, pixPayload, sortearDuplas, filaAtual, sequencia } from './logica.js';
 
 const MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const hojeD=new Date();
 const mesAtual=`${hojeD.getFullYear()}-${pad(hojeD.getMonth()+1)}`;
 const hojeISO=`${mesAtual}-${pad(hojeD.getDate())}`;
 const VIEWS={'#uniforme':'uniforme','#situacao':'situacao'};
-const S={view:(VIEWS[location.hash]||'mensal'),eu:null,freqPer:'mes',uni:{},uniPix:1,membros:[],pag:{},desp:[],avul:[],jogos:{},jogoSel:null,msgTipo:'cobranca',cfg:{valor2x:85,valor1x:50,pix:'',pixNome:'Jansey Oliveira',pixCidade:'Sao Paulo',cobranca:1,vencimento:10,valorAvulso:20,uniValor:90,uniMeta:10,uniPrazo:'2026-11-05',minSab:10,minTer:8,saldoInicial:0},qrPlano:'2x',
+const S={view:(VIEWS[location.hash]||'mensal'),eu:null,freqPer:'mes',uni:{},uniPix:1,membros:[],pag:{},desp:[],avul:[],jogos:{},jogoSel:null,msgTipo:'cobranca',cfg:{valor2x:85,valor1x:50,pix:'',pixNome:'Jansey Oliveira',pixCidade:'Sao Paulo',cobranca:1,vencimento:10,valorAvulso:20,aluguelValor:850,aluguelDesc:'Aluguel da Quadra',uniValor:90,uniMeta:10,uniPrazo:'2026-11-05',minSab:10,minTer:8,saldoInicial:0},qrPlano:'2x',
   mes:mesAtual,filtro:'todos',pode:false,db:null,aberto:null,ok:{m:false,p:false,d:false,c:false,a:false,j:false,u:false},semDb:false};
 try{const f=localStorage.getItem('mensal_filtro'); if(f) S.filtro=f; S.eu=localStorage.getItem('mensal_eu')}catch(e){}
 
@@ -72,6 +72,16 @@ function frequencia(per){
   const cont={};jogos.forEach(([iso,j])=>(j.presentes||[]).forEach(id=>{cont[id]=(cont[id]||0)+1}));
   return {total:jogos.length,cont};
 }
+function vitorias(per){
+  const ano=S.mes.slice(0,4); const cont={}; let partidas=0;
+  Object.entries(S.jogos).forEach(([iso,j])=>{
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)||j.cancelado||!j.sorteio||!(j.sorteio.partidas||[]).length) return;
+    if(per==='mes'?iso.slice(0,7)!==S.mes:iso.slice(0,4)!==ano) return;
+    j.sorteio.partidas.forEach(p=>{const d=j.sorteio.duplas[p.v];if(!d)return;partidas++;
+      [d.a,d.b].forEach(id=>{if(!String(id).startsWith('av:'))cont[id]=(cont[id]||0)+1})});
+  });
+  return {partidas,cont};
+}
 function historicoCaixa(){
   const meses=new Set();Object.values(S.pag).forEach(p=>meses.add(p.mes));S.desp.forEach(d=>meses.add(d.mes));S.avul.forEach(a=>meses.add(a.mes));
   S.membros.forEach(m=>m.desde&&meses.add(m.desde));
@@ -127,7 +137,8 @@ function renderSituacao(){
       <span class="status ${STL[l.st][0]}">${l.st==='pago'?`✓ Pago ${dataBR(l.data)}`:STL[l.st][1]}</span></div></div>`).join('')||'<div class="vazio">Nenhum mês ainda.</div>'}</div></section>`;
   h+=`<section><h2>Frequência</h2><div class="card freq-eu">
       <div><span class="cn num">${x.presMes}</span><span class="nota">de ${x.jogosMes} jogo${x.jogosMes===1?'':'s'} em ${MESES[+S.mes.slice(5)-1].toLowerCase()}</span></div>
-      <div><span class="cn num">${x.presAno}</span><span class="nota">de ${x.jogosAno} jogo${x.jogosAno===1?'':'s'} em ${S.mes.slice(0,4)}</span></div></div></section>`;
+      <div><span class="cn num">${x.presAno}</span><span class="nota">de ${x.jogosAno} jogo${x.jogosAno===1?'':'s'} em ${S.mes.slice(0,4)}</span></div>
+      ${(()=>{const vm=vitorias('mes').cont[mb.id]||0, va=vitorias('ano').cont[mb.id]||0;return vm||va?`<div><span class="cn num">${vm}</span><span class="nota">vitória${vm===1?'':'s'} em ${MESES[+S.mes.slice(5)-1].toLowerCase()}</span></div><div><span class="cn num">${va}</span><span class="nota">vitória${va===1?'':'s'} em ${S.mes.slice(0,4)}</span></div>`:''})()}</div></section>`;
   h+=`<section><h2>Avulsos que você levou</h2><div class="card"><div class="avl">${x.av.length?x.av.map(a=>`<div class="it"><span class="qd num">${diaTxt(a.data)}</span><span class="qn"><b>${esc(a.nome)}</b></span>${a.pago?`<span class="status pago">✓ ${brl(a.valor)}</span>`:`<span class="status aberto">${brl(a.valor)}</span>`}</div>`).join(''):'<p class="nota">Nenhum avulso.</p>'}</div></div></section>`;
   const u=x.u, st=u.status||'';
   h+=`<section><h2>Uniforme All Black</h2><div class="card"><div class="ufu">
@@ -141,7 +152,12 @@ function renderSituacao(){
       <div class="pixinfo"><div><div class="rot">Valor</div><div><b class="num">${brl(x.total)}</b></div></div><div><div class="rot">Chave Pix (e-mail)</div><div class="chave">${esc(S.cfg.pix)}</div></div>
       <div><div class="rot">Pix copia e cola</div><p class="cc" id="ccTxt">${esc(cod)}</p></div>
       <div class="linhab"><button class="btn prim" data-act="copiarCC">Copiar código</button><button class="btn sec" data-act="copiarChave">Copiar chave</button></div>
-      <p class="nota">Depois de pagar, mande o comprovante para o organizador dar baixa.</p></div></div></section>`;
+      <p class="nota">Depois de pagar, envie o comprovante logo abaixo.</p></div></div></section>`;
+    let env=null; try{env=localStorage.getItem('mensal_comp_'+mb.id)}catch(e){}
+    h+=`<section><h2>Enviar comprovante</h2><div class="card comp-env">
+      ${env?`<p class="okmsg">✓ Comprovante enviado em ${dataBR(env.slice(0,10))} às ${env.slice(11,16)}. O organizador vai conferir e dar baixa.</p>`:''}
+      <p class="nota">Pagou? Tire um print do comprovante do Pix e envie aqui (${brl(x.total)}). Só o organizador vê a imagem.</p>
+      <div><label class="btn prim" for="compArq" role="button" tabindex="0">📎 ${env?'Enviar outro comprovante':'Enviar comprovante'}</label><input id="compArq" type="file" accept="image/*" hidden></div></div></section>`;
   }
   app.innerHTML=h;
 }
@@ -153,7 +169,8 @@ function msgPresenca(t){
   let s=`*${DIA_LONGO[d]} ${dataBR(iso)} · ${HORA[d]}*\nFutevôlei Zero11 · Rua Saldanha de Oliveira, 60\n\n✅ Confirmados (${pr.length})\n`+(pr.length?pr.map(n=>`• ${n}`).join('\n'):'• ninguém confirmou ainda');
   if(avs.length) s+=`\n\n🎟️ Avulsos (${avs.length})\n`+avs.map(a=>`• ${a.nome} (levado por ${nomeMb(a.quem)})`).join('\n');
   const sd=S.jogos[iso]?.sorteio;
-  if(sd&&sd.duplas.length){s+=`\n\n🎲 Duplas sorteadas (ordem de jogo)\n`+sd.duplas.map((d,i)=>`Dupla ${pad(i+1)} – ${nomePart(d.a)} & ${nomePart(d.b)}`).join('\n');if(sd.sobra)s+=`\nFica de fora na primeira rodada: ${nomePart(sd.sobra)}`}
+  if(sd&&sd.duplas.length){s+=`\n\n🎲 Duplas sorteadas (ordem de jogo)\n`+sd.duplas.map((d,i)=>`Dupla ${pad(i+1)} – ${nomePart(d.a)} & ${nomePart(d.b)}`).join('\n');if(sd.sobra)s+=`\nFica de fora na primeira rodada: ${nomePart(sd.sobra)}`;
+    if((sd.partidas||[]).length){s+=`\n\n🏆 Vitórias (${sd.partidas.length} partidas)\n`+sd.duplas.map((d,i)=>({i,w:sd.partidas.filter(p=>p.v===i).length})).sort((a,b)=>b.w-a.w).map(o=>`Dupla ${pad(o.i+1)}: ${o.w}`).join(' · ')}}
   s+=`\n\n`+(pr.length<min?`Com ${pr.length} confirmados (menos de ${min}), *vaga liberada para avulso*. Valor fixo de ${brl(S.cfg.valorAvulso)}, pago por quem levar.`:`${pr.length} confirmados: *sem vaga para avulso* neste jogo.`);
   return s;
 }
@@ -305,6 +322,13 @@ function render(){
     <p><b class="num">${pct}%</b> arrecadado · avulsos <b class="num">${brl(t.avPago)}</b> · despesas <b class="num">${brl(t.despMes)}</b> · sobra do mês <b class="num">${brl(t.recebido+t.avPago-t.despMes)}</b></p></div>
   </div>`;
 
+  if(S.pode&&S.comps&&S.comps.length){
+    h+=`<section><div class="sech"><h2>Comprovantes para conferir</h2><span class="nota">${S.comps.length}</span></div><div class="comps">${S.comps.map(c=>`
+      <div class="card comp"><button class="thumb" data-act="verComp" data-id="${c.id}" aria-label="Ver comprovante de ${esc(c.nome)}"><img src="${c.img}" alt=""></button>
+        <div class="ci"><b>${esc(c.nome)}</b><span class="num">${brl(c.valor)} · enviado ${dataBR(String(c.em).slice(0,10))} ${String(c.em).slice(11,16)}</span>
+        <small>${(c.itens||[]).map(i=>i.t==='mensal'?`mensal ${MESES[+i.mes.slice(5)-1].slice(0,3).toLowerCase()}`:i.t==='avulso'?'avulso':'uniforme').join(' · ')}</small>
+        <div class="linhab"><button class="btn prim" data-act="baixaComp" data-id="${c.id}">Dar baixa</button><button class="btn sec" data-act="descComp" data-id="${c.id}">Descartar</button></div></div></div>`).join('')}</div></section>`;
+  }
   { const js=jogosDoMes(S.mes), iso=jogoAtual(), d=dow(iso), pr=presentes(iso), min=minDe(iso), avs=S.avul.filter(a=>a.data===iso);
     const vaga=pr.length<min, canc=cancelado(iso), jg=S.jogos[iso]||{};
     h+=`<section><div class="sech"><h2>Presença</h2><span class="nota">${js.length} jogos no mês</span></div>
@@ -321,7 +345,13 @@ function render(){
         let x=`<div class="sorteio">`;
         if(sd&&sd.duplas.length){
           x+=`<div class="sh"><span class="eb">Duplas sorteadas · ordem de jogo</span>${S.pode?`<div class="linhab"><button class="btn sec" data-act="sortear">Sortear de novo</button><button class="btn ${S.confApagar===iso?'perigo':'sec'}" data-act="apagarSorteio">${S.confApagar===iso?'Toque de novo para apagar':'Apagar sorteio'}</button></div>`:''}</div>
-          <ol class="duplas">${sd.duplas.map(d=>`<li><span>${esc(nomePart(d.a))}</span><i>&amp;</i><span>${esc(nomePart(d.b))}</span></li>`).join('')}</ol>
+          <ol class="duplas">${sd.duplas.map((d,i)=>{const w=(sd.partidas||[]).filter(p=>p.v===i).length;return `<li><span>${esc(nomePart(d.a))}</span><i>&amp;</i><span>${esc(nomePart(d.b))}</span>${w?`<em class="vit num">${w}V</em>`:''}</li>`}).join('')}</ol>
+          ${sd.duplas.length>=2?(()=>{const P=sd.partidas||[], fila=filaAtual(sd.duplas.length,P), seq=sequencia(P);
+            const dn=i=>`Dupla ${pad(i+1)}`, dnom=i=>`${nomePart(sd.duplas[i].a)} & ${nomePart(sd.duplas[i].b)}`;
+            const lado=i=>`<div class="lado"><b>${dn(i)}</b><span>${esc(dnom(i))}</span>${P.length&&P[P.length-1].v===i&&seq>1?`<small>🔥 ${seq} vitórias seguidas</small>`:''}${S.pode?`<button class="btn prim" data-act="venceu" data-v="${i}">Venceu</button>`:''}</div>`;
+            return `<div class="fila"><span class="eb">Em quadra agora</span><div class="emq">${lado(fila[0])}<div class="vs">×</div>${lado(fila[1])}</div>
+              ${fila.length>2?`<p class="nota">Próximas: ${fila.slice(2).map(dn).join(' · ')}</p>`:''}
+              <p class="nota">Quem ganha fica, quem perde vai para o fim da fila · ${P.length} partida${P.length===1?'':'s'}${S.pode&&P.length?` · <button class="lnk" data-act="desfazerPartida">Desfazer última</button>`:''}</p></div>`})():''}
           ${sd.sobra?`<p class="nota">Fica de fora na primeira rodada: <b>${esc(nomePart(sd.sobra))}</b></p>`:''}
           ${sorteioDesatualizado(iso)?`<p class="aviso">A lista de presença mudou depois do sorteio.${S.pode?' Sorteie de novo para incluir todo mundo.':''}</p>`:''}`;
         } else if(S.pode){
@@ -407,10 +437,19 @@ function render(){
     ${F.total?`<div class="freq">${ativosF.map((a,i)=>`<div class="fr"><span class="fp num">${a.n&&(i===0||a.n!==ativosF[i-1].n)?i+1+'º':''}</span><span class="fn">${esc(a.mb.nome)}</span><span class="fb"><i style="width:${a.n/mx*100}%"></i></span><span class="fv num">${a.n}/${F.total}</span></div>`).join('')}</div>`:''}</div></section>`;
   }
 
+  { const V=vitorias(S.freqPer); if(V.partidas){
+    const lst=[...t.ativos].map(mb=>({mb,n:V.cont[mb.id]||0})).filter(a=>a.n).sort((a,b)=>b.n-a.n||a.mb.nome.localeCompare(b.mb.nome,'pt-BR'));
+    const mx=Math.max(1,...lst.map(a=>a.n));
+    h+=`<section><div class="sech"><h2>Vitórias</h2><span class="nota">${V.partidas} partida${V.partidas===1?'':'s'} em ${S.freqPer==='mes'?MESES[+S.mes.slice(5)-1].toLowerCase():S.mes.slice(0,4)}</span></div>
+    <div class="card"><div class="freq">${lst.map((a,i)=>`<div class="fr"><span class="fp num">${i===0||a.n!==lst[i-1].n?i+1+'º':''}</span><span class="fn">${esc(a.mb.nome)}</span><span class="fb"><i class="vb" style="width:${a.n/mx*100}%"></i></span><span class="fv num">${a.n}</span></div>`).join('')}</div></div></section>`;
+  }}
+
   const dm=S.desp.filter(d=>d.mes===S.mes);
   h+=`<section><div class="sech"><h2>Despesas do mês</h2><span class="nota num">${brl(t.despMes)}</span></div><div class="card"><div class="desp">`;
   if(!dm.length) h+=`<p class="nota">Nenhuma despesa lançada. Ex.: aluguel da quadra, bola, rede.</p>`;
-  dm.forEach(d=>{h+=`<div class="it"><span>${esc(d.descricao)}</span><span class="num">${brl(d.valor)}</span>${S.pode?`<button class="x" data-act="delDesp" data-id="${d.id}" aria-label="Apagar ${esc(d.descricao)}">×</button>`:'<span></span>'}</div>`});
+  dm.forEach(d=>{
+    if(S.pode&&S.editDesp===d.id){h+=`<form class="it edit" id="fEditDesp" data-id="${d.id}"><span>${esc(d.descricao)}</span><input id="edVal" type="number" step="0.01" min="0" inputmode="decimal" value="${d.valor}" aria-label="Novo valor"><button class="btn prim" type="submit">Salvar</button></form>`;return}
+    h+=`<div class="it"><span>${esc(d.descricao)}${d.fixa?' <small class="tag">automática</small>':''}</span><span class="num">${brl(d.valor)}</span>${S.pode?`<span class="acs"><button class="x" data-act="editDesp" data-id="${d.id}" aria-label="Mudar valor de ${esc(d.descricao)}">✎</button><button class="x" data-act="delDesp" data-id="${d.id}" aria-label="Apagar ${esc(d.descricao)}">×</button></span>`:'<span></span>'}</div>`});
   h+=`</div>`;
   if(S.pode) h+=`<form class="inline" id="fDesp"><input id="dDesc" placeholder="Descrição" required maxlength="60"><input id="dVal" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Valor" required><button class="btn prim" type="submit">Lançar</button></form>`;
   h+=`</div></section>`;
@@ -433,6 +472,8 @@ function render(){
         <label class="f">Pagar até o dia<input id="cVenc" type="number" min="1" max="28" value="${S.cfg.vencimento||10}"></label>
         <label class="f">Avulso no sábado: abaixo de<input id="cMinS" type="number" min="1" max="40" value="${S.cfg.minSab||10}"></label>
         <label class="f">Avulso na terça: abaixo de<input id="cMinT" type="number" min="1" max="40" value="${S.cfg.minTer||8}"></label>
+        <label class="f">Aluguel da quadra por mês (R$)<input id="cAlug" type="number" step="0.01" min="0" value="${S.cfg.aluguelValor||0}"></label>
+        <label class="f">Nome da despesa fixa<input id="cAlugD" maxlength="40" value="${esc(S.cfg.aluguelDesc||'Aluguel da Quadra')}"></label>
         <label class="f">Avulso (R$)<input id="cAv" type="number" step="0.01" min="0" value="${S.cfg.valorAvulso||20}"></label>
         <label class="f">Saldo inicial do caixa (R$)<input id="cSaldo" type="number" step="0.01" value="${S.cfg.saldoInicial||0}"></label>
       </div><label class="f">Chave Pix<input id="cPix" value="${esc(S.cfg.pix)}" placeholder="celular, e-mail ou chave aleatória" maxlength="80"></label>
@@ -499,6 +540,28 @@ document.addEventListener('click',async ev=>{
   if(act==='plano') await grava(()=>db.doc(`integrantes/${id}`).update({plano:mb.plano==='1x'?'2x':'1x'}),'Plano alterado');
   if(act==='sair'){S.aberto=null;await grava(()=>db.doc(`integrantes/${id}`).update({ate:pagDe(mb,S.mes)?S.mes:mesAdd(S.mes,-1)}),`${mb.nome} saiu do grupo`)}
   if(act==='voltar') await grava(()=>db.doc(`integrantes/${id}`).update({ate:null,desde:(mb.desde&&mb.desde<=S.mes&&(!mb.ate||mb.ate>=mesAdd(S.mes,-1)))?mb.desde:S.mes}),`${mb.nome} voltou`);
+  if(act==='verComp'){const c=(S.comps||[]).find(x=>x.id===id);if(c)abreImagem(c.img);b.disabled=false;return}
+  if(act==='descComp'){await grava(()=>db.doc(`comprovantes/${id}`).delete(),'Comprovante descartado');return}
+  if(act==='baixaComp'){
+    const c=(S.comps||[]).find(x=>x.id===id); if(!c) return;
+    await grava(async()=>{
+      for(const i of (c.itens||[])){
+        if(i.t==='mensal') await db.doc(`pagamentos/${i.mes}_${c.membro}`).set({mes:i.mes,membro:c.membro,status:'pago',valor:Number(i.valor),data:hojeISO});
+        if(i.t==='avulso'&&S.avul.some(a=>a.id===i.id)) await db.doc(`avulsos/${i.id}`).update({pago:true,pagoEm:hojeISO});
+        if(i.t==='uniforme') await db.doc(`uniforme/${c.membro}`).set({...(S.uni[c.membro]||{}),status:'pago',pagoEm:hojeISO,em:hojeISO});
+      }
+      await db.doc(`comprovantes/${id}`).update({status:'conferido',conferidoEm:hojeISO});
+    },`Baixa dada: ${c.nome}, ${brl(c.valor)}`);
+    return}
+  if(act==='venceu'||act==='desfazerPartida'){
+    const iso=jogoAtual(), jg0=S.jogos[iso]||{}, sd=jg0.sorteio; if(!sd) return;
+    let P=[...(sd.partidas||[])];
+    if(act==='venceu'){const fila=filaAtual(sd.duplas.length,P);P.push({a:fila[0],b:fila[1],v:Number(b.dataset.v)})}
+    else P.pop();
+    const docJ={...jg0,data:iso,presentes:presentes(iso),sorteio:{...sd,partidas:P}};
+    S.jogos[iso]=docJ; render();
+    await grava(()=>db.doc(`jogos/${iso}`).set(docJ),act==='venceu'?`Dupla ${pad(Number(b.dataset.v)+1)} venceu`:'Última partida desfeita');
+    return}
   if(act==='apagarSorteio'){
     const iso=jogoAtual();
     if(S.confApagar!==iso){S.confApagar=iso;render();clearTimeout(S._tApagar);S._tApagar=setTimeout(()=>{if(S.confApagar===iso){S.confApagar=null;render()}},5000);return}
@@ -527,6 +590,7 @@ document.addEventListener('click',async ev=>{
   if(act==='delUni'){await grava(()=>db.doc(`uniforme/${id}`).delete(),'Pedido removido');return}
   if(act==='avPagar') await grava(()=>db.doc(`avulsos/${id}`).update({pago:true,pagoEm:hojeISO}),'Avulso recebido');
   if(act==='delAv') await grava(()=>db.doc(`avulsos/${id}`).delete(),'Avulso apagado');
+  if(act==='editDesp'){S.editDesp=id;render();setTimeout(()=>document.getElementById('edVal')?.focus(),0);b.disabled=false;return}
   if(act==='delDesp') await grava(()=>db.doc(`despesas/${id}`).delete(),'Despesa apagada');
   b.disabled=false;
 });
@@ -552,6 +616,52 @@ document.addEventListener('change',ev=>{
   salvaUni(el.dataset.id,{[f]:v});
   if(f==='status'||f==='qtd'){el.blur();render()}
 });
+function abreImagem(src){
+  let ov=document.getElementById('ov');
+  if(!ov){ov=document.createElement('div');ov.id='ov';ov.className='ov';ov.innerHTML='<button class="btn sec" type="button">Fechar</button><img alt="Comprovante">';document.body.appendChild(ov);
+    ov.addEventListener('click',()=>{ov.hidden=true});}
+  ov.querySelector('img').src=src; ov.hidden=false;
+}
+async function comprimeImagem(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((ok,er)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=er;i.src=url});
+    let w=img.naturalWidth,h=img.naturalHeight,max=1400;
+    for(let tent=0;tent<6;tent++){
+      const k=Math.min(1,max/Math.max(w,h)), cv=document.createElement('canvas');
+      cv.width=Math.round(w*k);cv.height=Math.round(h*k);
+      const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);cx.drawImage(img,0,0,cv.width,cv.height);
+      const d=cv.toDataURL('image/jpeg',0.72);
+      if(d.length<650000) return d;
+      max=Math.round(max*0.75);
+    }
+    throw new Error('grande');
+  } finally{URL.revokeObjectURL(url)}
+}
+document.addEventListener('change',async ev=>{
+  if(ev.target.id!=='compArq'||!ev.target.files[0]) return;
+  const mb=S.membros.find(m=>m.id===S.eu); if(!mb) return;
+  const x=situacao(mb); const file=ev.target.files[0]; ev.target.value='';
+  toast('Enviando o comprovante…');
+  try{
+    if(!auth.currentUser) await signInAnonymously(auth);
+    const img=await comprimeImagem(file);
+    const itens=[...x.linhas.filter(l=>l.st==='aberto'||l.st==='atrasado').map(l=>({t:'mensal',mes:l.m,valor:l.valor})),
+      ...x.av.filter(a=>!a.pago).map(a=>({t:'avulso',id:a.id,valor:Number(a.valor)})),
+      ...(x.abertoUni?[{t:'uniforme',valor:x.abertoUni}]:[])];
+    const em=new Date(Date.now()-3*3600e3).toISOString().slice(0,16);
+    await addDoc(collection(fs,BASE+'comprovantes'),{membro:mb.id,nome:mb.nome,valor:x.total,itens,img,em,status:'novo',uid:auth.currentUser.uid});
+    try{localStorage.setItem('mensal_comp_'+mb.id,em)}catch(e){}
+    toast('Comprovante enviado! O organizador vai conferir.');render();
+  }catch(e){toast(e&&e.message==='grande'?'A imagem é grande demais. Tente um print da tela.':'Não consegui enviar. Confira a internet e tente de novo.')}
+});
+let compsLigado=false;
+function ligaComprovantes(){
+  if(compsLigado||!S.pode) return; compsLigado=true;
+  onSnapshot(collection(fs,BASE+'comprovantes'),qs=>{
+    S.comps=qs.docs.map(d=>({id:d.id,...d.data()})).filter(c=>c.status==='novo').sort((a,b)=>a.em<b.em?-1:1);render();
+  },()=>{compsLigado=false});
+}
 document.addEventListener('focusout',()=>{setTimeout(()=>{if(S.pend)render()},0)});
 window.addEventListener('hashchange',()=>{const v=VIEWS[location.hash]||'mensal';if(v!==S.view){S.view=v;render()}});
 
@@ -574,6 +684,11 @@ document.addEventListener('submit',async ev=>{
     if(data.slice(0,7)!==S.mes){toast(`Escolha um dia de ${mesLongo(S.mes).toLowerCase()}.`);return}
     await grava(()=>db.collection('avulsos').add({mes:S.mes,data,nome,quem,valor:Number(S.cfg.valorAvulso)||20,pago,pagoEm:pago?hojeISO:null}),`Avulso ${nome} lançado`);
   }
+  if(f.id==='fEditDesp'){
+    const id=f.dataset.id, valor=Number(f.querySelector('#edVal').value);
+    if(!(valor>=0)) return; S.editDesp=null;
+    await grava(()=>db.doc(`despesas/${id}`).update({valor}),'Valor atualizado');
+  }
   if(f.id==='fDesp'){
     const descricao=f.querySelector('#dDesc').value.trim(), valor=Number(f.querySelector('#dVal').value);
     if(!descricao||!(valor>0)) return;
@@ -581,7 +696,7 @@ document.addEventListener('submit',async ev=>{
   }
   if(f.id==='fCfg'){
     const cfg={valor2x:Number(f.querySelector('#cV2').value)||0,valor1x:Number(f.querySelector('#cV1').value)||0,
-      cobranca:Number(f.querySelector('#cCob').value)||1,valorAvulso:Number(f.querySelector('#cAv').value)||20,minSab:Number(f.querySelector('#cMinS').value)||10,minTer:Number(f.querySelector('#cMinT').value)||8,vencimento:Number(f.querySelector('#cVenc').value)||10,saldoInicial:Number(f.querySelector('#cSaldo').value)||0,pix:f.querySelector('#cPix').value.trim(),pixNome:f.querySelector('#cPixNome').value.trim(),pixCidade:f.querySelector('#cPixCid').value.trim()};
+      cobranca:Number(f.querySelector('#cCob').value)||1,valorAvulso:Number(f.querySelector('#cAv').value)||20,aluguelValor:Number(f.querySelector('#cAlug').value)||0,aluguelDesc:(f.querySelector('#cAlugD').value.trim()||'Aluguel da Quadra'),minSab:Number(f.querySelector('#cMinS').value)||10,minTer:Number(f.querySelector('#cMinT').value)||8,vencimento:Number(f.querySelector('#cVenc').value)||10,saldoInicial:Number(f.querySelector('#cSaldo').value)||0,pix:f.querySelector('#cPix').value.trim(),pixNome:f.querySelector('#cPixNome').value.trim(),pixCidade:f.querySelector('#cPixCid').value.trim()};
     await grava(()=>db.doc('config/geral').set({...S.cfg,...cfg}),'Ajustes salvos');
   }
   if(f.id==='fNovo'){
@@ -606,8 +721,13 @@ const DB={
 };
 S.db=DB; S.usuario=null;
 
+const instalado=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 function rodape(){
   const el=document.getElementById('rodape'); if(!el) return;
+  rodapeBase(el);
+  if(!instalado()) el.innerHTML+=`<br><button class="lnk" data-act="abreInstalar">📲 Instalar no celular</button>`;
+}
+function rodapeBase(el){
   if(S.usuario){
     el.innerHTML=`${S.pode?'Organizador':'Conectado'}: ${esc(S.usuario.email)} · <button class="lnk" data-act="sair">Sair</button>${S.pode?' · <button class="lnk" data-act="backup">Baixar backup</button>':''}`;
     if(!S.pode) el.innerHTML+=`<br>Esta conta não tem permissão para alterar o mensal.`;
@@ -628,7 +748,7 @@ async function verificaPermissao(u){
 onAuthStateChanged(auth,async u=>{
   S.usuario=u&&!u.isAnonymous?u:null;
   await verificaPermissao(S.usuario);
-  render();rodape();
+  render();rodape();aluguelAutomatico();ligaComprovantes();
 });
 
 async function entrar(){
@@ -666,6 +786,9 @@ document.addEventListener('click',async ev=>{
   const b=ev.target.closest('[data-act]'); if(!b) return;
   const act=b.dataset.act;
   if(act==='entrar') entrar();
+  if(act==='abreInstalar'){const s=document.getElementById('instalar');s.hidden=false;s.scrollIntoView({behavior:'smooth',block:'center'})}
+  if(act==='fechaInstalar') document.getElementById('instalar').hidden=true;
+  if(act==='instalarApp'&&promptInstalar){promptInstalar.prompt();try{await promptInstalar.userChoice}catch(e){};promptInstalar=null;document.getElementById('btnInstalar').hidden=true}
   if(act==='sair') {await signOut(auth);toast('Você saiu.')}
   if(act==='backup') baixarBackup();
   if(act==='importarInicial'){
@@ -682,7 +805,19 @@ document.addEventListener('change',async ev=>{
   ev.target.value='';
 });
 
-const pronto=()=>{render()};
+// Aluguel da quadra: lançado sozinho no mês atual quando o organizador abre o site.
+let aluguelTentado=false;
+async function aluguelAutomatico(){
+  if(aluguelTentado||!S.pode||!Object.values(S.ok).every(Boolean)) return;
+  const v=Number(S.cfg.aluguelValor||0); if(!(v>0)) return;
+  aluguelTentado=true;
+  const desc=(S.cfg.aluguelDesc||'Aluguel da Quadra').trim(), id=`aluguel-${mesAtual}`;
+  const ja=S.desp.some(d=>d.mes===mesAtual&&(d.id===id||d.fixa||String(d.descricao||'').trim().toLowerCase()===desc.toLowerCase()));
+  if(ja) return;
+  try{await DB.doc(`despesas/${id}`).set({mes:mesAtual,descricao:desc,valor:v,data:hojeISO,fixa:true});toast(`${desc} de ${MESES[+mesAtual.slice(5)-1].toLowerCase()} lançado: ${brl(v)}. Dá para mudar o valor no ✎.`)}
+  catch(e){}
+}
+const pronto=()=>{render();aluguelAutomatico()};
 const falhou=()=>{S.semDb=true;render()};
 DB.collection('integrantes').onSnapshot(s=>{S.membros=s.docs.map(d=>({id:d.id,...d.data()}));S.ok.m=true;pronto()},falhou);
 DB.collection('pagamentos').onSnapshot(s=>{const o={};s.docs.forEach(d=>o[d.id]=d.data());S.pag=o;S.ok.p=true;pronto()},falhou);
@@ -692,3 +827,9 @@ DB.collection('jogos').onSnapshot(s=>{const o={};s.docs.forEach(d=>o[d.id]=d.dat
 DB.collection('avulsos').onSnapshot(s=>{S.avul=s.docs.map(d=>({id:d.id,...d.data()}));S.ok.a=true;pronto()},falhou);
 DB.doc('config/geral').onSnapshot(s=>{if(s.exists)S.cfg={...S.cfg,...s.data()};S.ok.c=true;pronto()},falhou);
 render();rodape();
+
+// Instalar como app (PWA)
+let promptInstalar=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();promptInstalar=e;const b=document.getElementById('btnInstalar');if(b)b.hidden=false});
+window.addEventListener('appinstalled',()=>{document.getElementById('instalar').hidden=true;rodape();toast('Instalado! Procure o ícone na tela inicial.')});
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});

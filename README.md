@@ -29,6 +29,17 @@ Ficam em `firestore.rules`. Depois de mudar, publique em **Console do Firebase (
 ## Administradores
 No Console, em Firestore, crie a coleção `admins` com um documento por e-mail (em minúsculas), por exemplo `admins/jansey@studiojs.com.br` com `{ nome: "Jansey" }`.
 
+## Funções
+- **Mensal:** pagamentos por mês, atrasos, isenções, cobrança pronta para o WhatsApp, Pix com QR.
+- **Presença e jogo:** confirmados por jogo, vaga para avulso, jogo cancelado, sorteio de duplas (Dupla 01, 02…), fila da quadra (quem ganha fica) e ranking de vitórias.
+- **Caixa:** avulsos, despesas (aluguel da quadra lançado sozinho todo mês), histórico e fechamento do mês.
+- **Uniforme All Black:** pedidos, barra de meta, prazo e Pix.
+- **Minha situação:** cada integrante vê o que deve, paga pelo Pix e envia o comprovante (só o organizador vê).
+- **Instalar no celular:** o site funciona como app na tela inicial.
+
+## Login anônimo
+O envio de comprovante usa o login **Anônimo** do Firebase (Authentication › Método de login › Anônimo, ativado).
+
 ## Backup
 Em **Ajustes › Backup**, o organizador baixa um JSON com tudo e pode restaurar a partir dele.
 

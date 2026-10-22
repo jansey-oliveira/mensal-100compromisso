@@ -84,3 +84,27 @@ export function sortearDuplas(ids, rnd = Math.random) {
   for (let i = 0; i + 1 < v.length; i += 2) duplas.push({ a: v[i], b: v[i + 1] });
   return { duplas, sobra: v.length % 2 ? v[v.length - 1] : null };
 }
+
+/**
+ * Fila da quadra (regra "quem ganha fica"): começa na ordem do sorteio (0, 1, 2…);
+ * em cada partida jogam fila[0] × fila[1], a vencedora fica e a perdedora vai para o fim.
+ * partidas = [{ a, b, v }] (índices das duplas; v = vencedora). Retorna a fila atual.
+ */
+export function filaAtual(nDuplas, partidas = []) {
+  let fila = Array.from({ length: nDuplas }, (_, i) => i);
+  for (const p of partidas) {
+    if (fila.length < 2) break;
+    const perd = p.v === fila[0] ? fila[1] : fila[0];
+    fila = [p.v, ...fila.slice(2), perd];
+  }
+  return fila;
+}
+
+/** Vitórias seguidas da dupla que está em quadra (fila[0]) no fim das partidas. */
+export function sequencia(partidas = []) {
+  if (!partidas.length) return 0;
+  const v = partidas[partidas.length - 1].v;
+  let n = 0;
+  for (let i = partidas.length - 1; i >= 0 && partidas[i].v === v; i--) n++;
+  return n;
+}

@@ -9,6 +9,7 @@ rules_version = '2';
 // - Administradores: e-mails na coleção "admins" (um documento por e-mail, em minúsculas).
 //   Só se cadastram pelo Console do Firebase.
 // - Organizadores de um grupo: e-mails em grupos/{grupo}/organizadores. Alteram só aquele grupo.
+// - Integrantes: enviam comprovante de Pix (login anônimo). Só o organizador vê.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -49,6 +50,21 @@ service cloud.firestore {
       match /jogos/{id} { allow read: if true; allow write: if isOrg(); }
       match /uniforme/{id} { allow read: if true; allow write: if isOrg(); }
       match /config/{id} { allow read: if true; allow write: if isOrg(); }
+
+      // Comprovantes de Pix: qualquer visitante (login anônimo) envia; só o organizador vê, dá baixa ou apaga.
+      match /comprovantes/{id} {
+        allow create: if request.auth != null
+          && request.resource.data.keys().hasOnly(['membro', 'nome', 'valor', 'itens', 'img', 'em', 'status', 'uid'])
+          && request.resource.data.status == 'novo'
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.img is string && request.resource.data.img.size() < 900000
+          && request.resource.data.membro is string && request.resource.data.membro.size() < 80
+          && request.resource.data.nome is string && request.resource.data.nome.size() < 80
+          && request.resource.data.valor is number && request.resource.data.valor < 100000
+          && request.resource.data.itens is list && request.resource.data.itens.size() < 40
+          && request.resource.data.em is string && request.resource.data.em.size() < 30;
+        allow read, update, delete: if isOrg();
+      }
     }
   }
 }
