@@ -1,14 +1,14 @@
-// Configuração do Firebase: o mesmo projeto do sistema de torneios (arena-futvolei).
-// Os dados do mensal ficam em grupos/{GRUPO}/... e as regras de segurança estão no
-// firestore.rules do repositório arena-futvolei (bloco "Mensal de grupos").
+// Configuração do Firebase do projeto exclusivo do mensal (mensal-100compromisso).
+// Os dados ficam em grupos/{GRUPO}/... e as regras de segurança em firestore.rules
+// (publique em Console do Firebase › Firestore › Regras › Publicar).
 // Esses valores não são senhas: a proteção dos dados fica nas regras do Firestore.
 export const firebaseConfig = {
-  apiKey: "AIzaSyC7ikABBgFx4gz4dFFgM-pFufp4m3f1PAQ",
-  authDomain: "arena-futvolei.firebaseapp.com",
-  projectId: "arena-futvolei",
-  storageBucket: "arena-futvolei.firebasestorage.app",
-  messagingSenderId: "872948460855",
-  appId: "1:872948460855:web:9ff571b48559c8f549beb2"
+  apiKey: "AIzaSyBF5YQyzjWDOuAELm62lTxQgApPJoEjl0o",
+  authDomain: "mensal-100compromisso.firebaseapp.com",
+  projectId: "mensal-100compromisso",
+  storageBucket: "mensal-100compromisso.firebasestorage.app",
+  messagingSenderId: "50380576479",
+  appId: "1:50380576479:web:54246954b5b1f1a070bb6a"
 };
 
 // Identificador do grupo no banco. Para outro grupo, troque aqui.

@@ -584,7 +584,7 @@ function rodape(){
 async function verificaPermissao(u){
   if(!u||!u.email){S.pode=false;return}
   try{
-    const adm=await getDoc(doc(fs,'admins',u.email));
+    const adm=await getDoc(doc(fs,'admins',u.email.toLowerCase()));
     if(adm.exists()){S.pode=true;return}
   }catch(e){}
   try{

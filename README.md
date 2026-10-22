@@ -7,7 +7,7 @@ Links diretos: `#uniforme` e `#situacao`.
 
 ## Como funciona
 - Site estático (HTML, CSS e JavaScript puro, sem build), publicado pelo GitHub Pages a cada push na `main`.
-- Dados no **Firebase do projeto `arena-futvolei`** (o mesmo do sistema de torneios), em `grupos/100compromisso/...`:
+- Dados no **Firebase do projeto exclusivo `mensal-100compromisso`** (Firestore em São Paulo, plano gratuito), em `grupos/100compromisso/...`:
   `integrantes`, `pagamentos`, `despesas`, `avulsos`, `jogos`, `uniforme`, `config/geral`.
 - **Qualquer pessoa vê** os dados pelo link. **Só quem entra com Google e é administrador** (coleção `admins`) ou organizador do grupo (`grupos/100compromisso/organizadores/{email}`) altera.
 
@@ -19,11 +19,15 @@ Links diretos: `#uniforme` e `#situacao`.
 | `js/app.js` | Telas, ações, Firebase, login e backup |
 | `js/logica.js` | Regras puras: meses, dias de jogo, Pix (BR Code) |
 | `js/config.js` | Configuração do Firebase e identificador do grupo |
+| `firestore.rules` | Regras de segurança do banco |
 | `dados/backup-inicial.json` | Dados migrados do artefato em 21/10/2026 |
 | `testes/logica.test.mjs` | Testes (`node testes/logica.test.mjs`) |
 
 ## Regras de segurança
-As regras ficam no `firestore.rules` do repositório **arena-futvolei** (bloco "Mensal de grupos"), porque o projeto Firebase é o mesmo. Depois de mudar, publique em **Console do Firebase › Firestore › Regras › Publicar**.
+Ficam em `firestore.rules`. Depois de mudar, publique em **Console do Firebase (mensal-100compromisso) › Firestore › Regras › Publicar**.
+
+## Administradores
+No Console, em Firestore, crie a coleção `admins` com um documento por e-mail (em minúsculas), por exemplo `admins/jansey@studiojs.com.br` com `{ nome: "Jansey" }`.
 
 ## Backup
 Em **Ajustes › Backup**, o organizador baixa um JSON com tudo e pode restaurar a partir dele.
