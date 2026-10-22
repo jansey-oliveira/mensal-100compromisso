@@ -153,7 +153,7 @@ function msgPresenca(t){
   let s=`*${DIA_LONGO[d]} ${dataBR(iso)} · ${HORA[d]}*\nFutevôlei Zero11 · Rua Saldanha de Oliveira, 60\n\n✅ Confirmados (${pr.length})\n`+(pr.length?pr.map(n=>`• ${n}`).join('\n'):'• ninguém confirmou ainda');
   if(avs.length) s+=`\n\n🎟️ Avulsos (${avs.length})\n`+avs.map(a=>`• ${a.nome} (levado por ${nomeMb(a.quem)})`).join('\n');
   const sd=S.jogos[iso]?.sorteio;
-  if(sd&&sd.duplas.length){s+=`\n\n🎲 Duplas sorteadas\n`+sd.duplas.map((d,i)=>`${i+1}. ${nomePart(d.a)} & ${nomePart(d.b)}`).join('\n');if(sd.sobra)s+=`\nFica de fora na primeira rodada: ${nomePart(sd.sobra)}`}
+  if(sd&&sd.duplas.length){s+=`\n\n🎲 Duplas sorteadas (ordem de jogo)\n`+sd.duplas.map((d,i)=>`Dupla ${pad(i+1)} – ${nomePart(d.a)} & ${nomePart(d.b)}`).join('\n');if(sd.sobra)s+=`\nFica de fora na primeira rodada: ${nomePart(sd.sobra)}`}
   s+=`\n\n`+(pr.length<min?`Com ${pr.length} confirmados (menos de ${min}), *vaga liberada para avulso*. Valor fixo de ${brl(S.cfg.valorAvulso)}, pago por quem levar.`:`${pr.length} confirmados: *sem vaga para avulso* neste jogo.`);
   return s;
 }
@@ -320,7 +320,7 @@ function render(){
       ${(()=>{const parts=participantes(iso), sd=jg.sorteio;
         let x=`<div class="sorteio">`;
         if(sd&&sd.duplas.length){
-          x+=`<div class="sh"><span class="eb">Duplas sorteadas</span>${S.pode?`<button class="btn sec" data-act="sortear">Sortear de novo</button>`:''}</div>
+          x+=`<div class="sh"><span class="eb">Duplas sorteadas · ordem de jogo</span>${S.pode?`<button class="btn sec" data-act="sortear">Sortear de novo</button>`:''}</div>
           <ol class="duplas">${sd.duplas.map(d=>`<li><span>${esc(nomePart(d.a))}</span><i>&amp;</i><span>${esc(nomePart(d.b))}</span></li>`).join('')}</ol>
           ${sd.sobra?`<p class="nota">Fica de fora na primeira rodada: <b>${esc(nomePart(sd.sobra))}</b></p>`:''}
           ${sorteioDesatualizado(iso)?`<p class="aviso">A lista de presença mudou depois do sorteio.${S.pode?' Sorteie de novo para incluir todo mundo.':''}</p>`:''}`;
