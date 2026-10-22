@@ -320,7 +320,7 @@ function render(){
       ${(()=>{const parts=participantes(iso), sd=jg.sorteio;
         let x=`<div class="sorteio">`;
         if(sd&&sd.duplas.length){
-          x+=`<div class="sh"><span class="eb">Duplas sorteadas · ordem de jogo</span>${S.pode?`<button class="btn sec" data-act="sortear">Sortear de novo</button>`:''}</div>
+          x+=`<div class="sh"><span class="eb">Duplas sorteadas · ordem de jogo</span>${S.pode?`<div class="linhab"><button class="btn sec" data-act="sortear">Sortear de novo</button><button class="btn ${S.confApagar===iso?'perigo':'sec'}" data-act="apagarSorteio">${S.confApagar===iso?'Toque de novo para apagar':'Apagar sorteio'}</button></div>`:''}</div>
           <ol class="duplas">${sd.duplas.map(d=>`<li><span>${esc(nomePart(d.a))}</span><i>&amp;</i><span>${esc(nomePart(d.b))}</span></li>`).join('')}</ol>
           ${sd.sobra?`<p class="nota">Fica de fora na primeira rodada: <b>${esc(nomePart(sd.sobra))}</b></p>`:''}
           ${sorteioDesatualizado(iso)?`<p class="aviso">A lista de presença mudou depois do sorteio.${S.pode?' Sorteie de novo para incluir todo mundo.':''}</p>`:''}`;
@@ -499,6 +499,14 @@ document.addEventListener('click',async ev=>{
   if(act==='plano') await grava(()=>db.doc(`integrantes/${id}`).update({plano:mb.plano==='1x'?'2x':'1x'}),'Plano alterado');
   if(act==='sair'){S.aberto=null;await grava(()=>db.doc(`integrantes/${id}`).update({ate:pagDe(mb,S.mes)?S.mes:mesAdd(S.mes,-1)}),`${mb.nome} saiu do grupo`)}
   if(act==='voltar') await grava(()=>db.doc(`integrantes/${id}`).update({ate:null,desde:(mb.desde&&mb.desde<=S.mes&&(!mb.ate||mb.ate>=mesAdd(S.mes,-1)))?mb.desde:S.mes}),`${mb.nome} voltou`);
+  if(act==='apagarSorteio'){
+    const iso=jogoAtual();
+    if(S.confApagar!==iso){S.confApagar=iso;render();clearTimeout(S._tApagar);S._tApagar=setTimeout(()=>{if(S.confApagar===iso){S.confApagar=null;render()}},5000);return}
+    S.confApagar=null;
+    const docJ={...(S.jogos[iso]||{}),data:iso,presentes:presentes(iso)}; delete docJ.sorteio;
+    S.jogos[iso]=docJ; render();
+    await grava(()=>db.doc(`jogos/${iso}`).set(docJ),'Sorteio apagado');
+    return}
   if(act==='sortear'){
     const iso=jogoAtual(), r=sortearDuplas(participantes(iso));
     const docJ={...(S.jogos[iso]||{}),data:iso,presentes:presentes(iso),sorteio:{duplas:r.duplas,sobra:r.sobra,em:new Date().toISOString()}};

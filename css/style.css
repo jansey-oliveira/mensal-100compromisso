@@ -273,3 +273,4 @@ details.aj[open] summary::after{content:"–"}
 .sorteio .aviso{margin:0}
 .pchip{display:block}
 .pchip small{display:block}
+.btn.perigo{background:var(--due);color:#fff}
